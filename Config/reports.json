@@ -1,0 +1,212 @@
+[
+  {
+    "Id": "AD.DisabledUsers",
+    "DisplayName": "Disabled AD Users",
+    "Category": "Active Directory",
+    "Function": "Get-HIRADDisabledUsers",
+    "Implemented": true
+  },
+  {
+    "Id": "Hybrid.DisabledADUsersVisibleInGAL",
+    "DisplayName": "Disabled AD users still visible in GAL",
+    "Category": "Hybrid Reports",
+    "Function": "Get-HIRHybridDisabledADUsersVisibleInGAL",
+    "Implemented": true
+  },
+  {
+    "Id": "Entra.CloudOnlyUsers",
+    "DisplayName": "Cloud-only Entra users",
+    "Category": "Entra ID",
+    "Function": "Get-HIREntraCloudOnlyUsers",
+    "Implemented": true
+  },
+  {
+    "Id": "Entra.GuestUsers",
+    "DisplayName": "Guest Entra users",
+    "Category": "Entra ID",
+    "Function": "Get-HIREntraGuestUsers",
+    "Implemented": true
+  },
+  {
+    "Id": "Exchange.MailboxesWithForwarding",
+    "DisplayName": "Mailboxes with forwarding enabled",
+    "Category": "Exchange Online",
+    "Function": "Get-HIRExchangeMailboxesWithForwarding",
+    "Implemented": true
+  },
+  {
+    "Id": "AD.LockedUsers",
+    "DisplayName": "Locked AD Users",
+    "Category": "Active Directory",
+    "Function": "Get-HIRADLockedUsers",
+    "Implemented": true
+  },
+  {
+    "Id": "AD.InactiveUsers90Days",
+    "DisplayName": "Inactive AD Users over 90 days",
+    "Category": "Active Directory",
+    "Function": "Get-HIRADInactiveUsers",
+    "Implemented": true
+  },
+  {
+    "Id": "AD.PasswordNeverExpires",
+    "DisplayName": "Password Never Expires",
+    "Category": "Security / IAM",
+    "Function": "Get-HIRADPasswordNeverExpiresUsers",
+    "Implemented": true
+  },
+  {
+    "Id": "AD.DomainAdminsMembers",
+    "DisplayName": "Domain Admins Members",
+    "Category": "Security / IAM",
+    "Function": "Get-HIRADDomainAdminsMembers",
+    "Implemented": true
+  },
+  {
+    "Id": "AD.AdminCountUsers",
+    "DisplayName": "AdminCount = 1 Users",
+    "Category": "Security / IAM",
+    "Function": "Get-HIRADAdminCountUsers",
+    "Implemented": true
+  },
+  {
+    "Id": "AD.UsersWithoutEmail",
+    "DisplayName": "Users Without Email",
+    "Category": "Active Directory",
+    "Function": "Get-HIRADUsersWithoutEmail",
+    "Implemented": true
+  },
+  {
+    "Id": "AD.UsersWithoutManager",
+    "DisplayName": "Users Without Manager",
+    "Category": "Active Directory",
+    "Function": "Get-HIRADUsersWithoutManager",
+    "Implemented": true
+  },
+  {
+    "Id": "AD.InactiveComputers90Days",
+    "DisplayName": "Inactive Computers over 90 days",
+    "Category": "Active Directory",
+    "Function": "Get-HIRADInactiveComputers",
+    "Implemented": true
+  },
+  {
+    "Id": "AD.EmptyGroups",
+    "DisplayName": "Empty AD Groups",
+    "Category": "Active Directory",
+    "Function": "Get-HIRDEmptyGroups",
+    "Implemented": true
+  },
+  {
+    "Id": "Entra.SyncedUsers",
+    "DisplayName": "Synced Users",
+    "Category": "Entra ID",
+    "Function": "Get-HIREntraSyncedUsers",
+    "Implemented": true
+  },
+  {
+    "Id": "Entra.DisabledUsers",
+    "DisplayName": "Disabled Entra Users",
+    "Category": "Entra ID",
+    "Function": "Get-HIREntraDisabledUsers",
+    "Implemented": true
+  },
+  {
+    "Id": "Entra.LicensedUsers",
+    "DisplayName": "Licensed Users",
+    "Category": "Entra ID",
+    "Function": "Get-HIREntraLicensedUsers",
+    "Implemented": true
+  },
+  {
+    "Id": "Entra.UsersWithoutLicense",
+    "DisplayName": "Users Without License",
+    "Category": "Entra ID",
+    "Function": "Get-HIREntraUsersWithoutLicense",
+    "Implemented": true
+  },
+  {
+    "Id": "Entra.Groups",
+    "DisplayName": "Entra Groups",
+    "Category": "Entra ID",
+    "Function": "Get-HIREntraGroups",
+    "Implemented": true
+  },
+  {
+    "Id": "Entra.AdminRoleMembers",
+    "DisplayName": "Entra Admin Role Members",
+    "Category": "Security / IAM",
+    "Function": "Get-HIREntraAdminRoleMembers",
+    "Implemented": true
+  },
+  {
+    "Id": "Exchange.UserMailboxes",
+    "DisplayName": "User Mailboxes",
+    "Category": "Exchange Online",
+    "Function": "Get-HIRExchangeUserMailboxes",
+    "Implemented": true
+  },
+  {
+    "Id": "Exchange.SharedMailboxes",
+    "DisplayName": "Shared Mailboxes",
+    "Category": "Exchange Online",
+    "Function": "Get-HIRExchangeSharedMailboxes",
+    "Implemented": true
+  },
+  {
+    "Id": "Exchange.HiddenFromGAL",
+    "DisplayName": "Hidden From GAL",
+    "Category": "Exchange Online",
+    "Function": "Get-HIRExchangeHiddenFromGAL",
+    "Implemented": true
+  },
+  {
+    "Id": "Hybrid.ADUsersMissingMailNickname",
+    "DisplayName": "AD users missing mailNickname",
+    "Category": "Hybrid Reports",
+    "Function": "Get-HIRHybridADUsersMissingMailNickname",
+    "Implemented": true
+  },
+  {
+    "Id": "Hybrid.ADUsersMissingProxyAddresses",
+    "DisplayName": "AD users missing proxyAddresses",
+    "Category": "Hybrid Reports",
+    "Function": "Get-HIRHybridADUsersMissingProxyAddresses",
+    "Implemented": true
+  },
+  {
+    "Id": "Entra.UsersWithoutMFAMethods",
+    "DisplayName": "Users Without MFA Methods",
+    "Category": "Security / IAM",
+    "Function": "Get-HIREntraUsersWithoutMFAMethods",
+    "Implemented": false
+  },
+  {
+    "Id": "Exchange.FullAccessMailboxPermissions",
+    "DisplayName": "Full Access Mailbox Permissions",
+    "Category": "Exchange Online",
+    "Function": "Get-HIRExchangeFullAccessMailboxPermissions",
+    "Implemented": false
+  },
+  {
+    "Id": "Exchange.SendAsPermissions",
+    "DisplayName": "Send As Permissions",
+    "Category": "Exchange Online",
+    "Function": "Get-HIRExchangeSendAsPermissions",
+    "Implemented": false
+  },
+  {
+    "Id": "Hybrid.DuplicateUPN",
+    "DisplayName": "Duplicate UPN",
+    "Category": "Hybrid Reports",
+    "Function": "Get-HIRHybridDuplicateUPN",
+    "Implemented": false
+  },
+  {
+    "Id": "Hybrid.DuplicateProxyAddresses",
+    "DisplayName": "Duplicate proxyAddresses",
+    "Category": "Hybrid Reports",
+    "Function": "Get-HIRHybridDuplicateProxyAddresses",
+    "Implemented": false
+  }
+]

@@ -1,0 +1,282 @@
+<Window
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Hybrid Identity Reporter"
+    Height="740"
+    Width="1180"
+    MinHeight="560"
+    MinWidth="760"
+    WindowStartupLocation="CenterScreen"
+    WindowStyle="SingleBorderWindow"
+    ResizeMode="CanResizeWithGrip"
+    Background="#EEF3F8"
+    FontFamily="Segoe UI"
+    FontSize="12">
+    <Window.Resources>
+        <SolidColorBrush x:Key="NavyBrush" Color="#06263B" />
+        <SolidColorBrush x:Key="SidebarBrush" Color="#08324D" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#2E86C1" />
+        <SolidColorBrush x:Key="BorderBrushSoft" Color="#D8E2EC" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFF" />
+
+        <Style TargetType="Button">
+            <Setter Property="MinWidth" Value="132" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Margin" Value="0,0,10,10" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Background" Value="#F7FAFC" />
+            <Setter Property="BorderBrush" Value="#C7D3DF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#102A43" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            x:Name="ButtonBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="2"
+                            SnapsToDevicePixels="True">
+                            <ContentPresenter
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#EAF3FB" />
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#7CB8E3" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#D6EAF8" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#F0F2F4" />
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#D6DCE2" />
+                                <Setter Property="Foreground" Value="#8A9AA8" />
+                                <Setter Property="Cursor" Value="Arrow" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="Padding" Value="10" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
+            <Setter Property="Background" Value="{StaticResource PanelBrush}" />
+            <Setter Property="Foreground" Value="#102A43" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style TargetType="ListBox">
+            <Setter Property="BorderBrush" Value="#C9D6E2" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        </Style>
+        <Style x:Key="NavigationItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="#EAF2F8" />
+            <Setter Property="Padding" Value="10,9" />
+            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border
+                            x:Name="NavItemBorder"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            BorderThickness="1"
+                            CornerRadius="1"
+                            Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="NavItemBorder" Property="Background" Value="#123F5D" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="NavItemBorder" Property="Background" Value="#1D5F86" />
+                                <Setter TargetName="NavItemBorder" Property="BorderBrush" Value="#5DADE2" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="GridLinesVisibility" Value="Horizontal" />
+            <Setter Property="HeadersVisibility" Value="Column" />
+            <Setter Property="RowBackground" Value="White" />
+            <Setter Property="AlternatingRowBackground" Value="#F7FAFC" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource NavyBrush}" Padding="18,11">
+            <DockPanel>
+                <TextBlock x:Name="ApplicationTitleText" Text="Hybrid Identity Reporter" Foreground="White" FontSize="21" FontWeight="SemiBold" DockPanel.Dock="Left" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="Read-only hybrid identity audit" Foreground="#B8C7D4" FontSize="12" HorizontalAlignment="Right" Margin="16,4,0,0" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="SidebarColumn" Width="198" MinWidth="160" MaxWidth="250" />
+                <ColumnDefinition Width="1" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" Padding="12,14">
+                <StackPanel>
+                    <TextBlock Text="Navigation" Foreground="#C9D8E5" FontWeight="SemiBold" Margin="3,0,3,12" />
+                    <ListBox x:Name="NavigationList" Background="Transparent" BorderThickness="0" Foreground="White" SelectedIndex="0">
+                        <ListBoxItem Content="Dashboard" Style="{StaticResource NavigationItemStyle}" />
+                        <ListBoxItem Content="Hybrid Reports" Style="{StaticResource NavigationItemStyle}" />
+                        <ListBoxItem Content="Active Directory" Style="{StaticResource NavigationItemStyle}" />
+                        <ListBoxItem Content="Entra ID" Style="{StaticResource NavigationItemStyle}" />
+                        <ListBoxItem Content="Exchange Online" Style="{StaticResource NavigationItemStyle}" />
+                        <ListBoxItem Content="Security / IAM" Style="{StaticResource NavigationItemStyle}" />
+                        <ListBoxItem Content="Exports" Style="{StaticResource NavigationItemStyle}" />
+                        <ListBoxItem Content="Settings" Style="{StaticResource NavigationItemStyle}" />
+                        <ListBoxItem Content="Debug / Health" Style="{StaticResource NavigationItemStyle}" />
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="1" HorizontalAlignment="Stretch" Background="#C9D6E2" />
+
+            <Grid x:Name="ContentGrid" Grid.Column="2" Margin="18">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition x:Name="ReportLogContainerRow" Height="305" MinHeight="220" MaxHeight="430" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Background="White" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Padding="14" Margin="0,0,0,14">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock x:Name="SectionTitleText" Text="Dashboard" FontSize="20" FontWeight="SemiBold" Foreground="#102A43" TextWrapping="Wrap" />
+                            <TextBlock x:Name="SectionDescriptionText" Text="Hybrid identity audit overview and priority reports." Foreground="#52606D" Margin="0,4,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <TextBlock x:Name="DependencySummaryText" Grid.Column="1" Text="Dependencies: checked on demand" Foreground="#52606D" Margin="16,4,0,0" TextWrapping="Wrap" MaxWidth="320" />
+                    </Grid>
+                </Border>
+
+                <WrapPanel x:Name="ActionPanel" Grid.Row="1" Margin="0,0,0,14">
+                    <Button x:Name="ConnectADButton" Content="Connect AD" />
+                    <Button x:Name="ConnectEntraButton" Content="Connect Entra ID" MinWidth="145" />
+                    <Button x:Name="ConnectExchangeButton" Content="Connect Exchange Online" MinWidth="185" />
+                    <Button x:Name="RunReportButton" Content="Run Report" FontWeight="SemiBold" Background="#D8ECFA" BorderBrush="#74A9D8" />
+                    <Button x:Name="ExportCsvButton" Content="Export CSV" />
+                    <Button x:Name="ExportExcelButton" Content="Export Excel" />
+                    <Button x:Name="ExportHtmlButton" Content="Export HTML" />
+                    <Button x:Name="ClearResultsButton" Content="Clear Results" />
+                    <Button x:Name="OpenReportsButton" Content="Open Reports" />
+                    <Button x:Name="OpenLogsButton" Content="Open Logs" />
+                    <Button x:Name="HealthCheckButton" Content="Run Health Check" MinWidth="150" />
+                </WrapPanel>
+
+                <Grid x:Name="ReportLogGrid" Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition x:Name="ReportsColumn" Width="2*" />
+                        <ColumnDefinition x:Name="OverviewColumn" Width="1.2*" />
+                        <ColumnDefinition x:Name="LogColumn" Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition x:Name="ReportsRow" Height="*" />
+                        <RowDefinition x:Name="OverviewRow" Height="0" />
+                        <RowDefinition x:Name="LogRow" Height="0" />
+                    </Grid.RowDefinitions>
+
+                    <GroupBox x:Name="ReportsGroup" Header="Reports" Grid.Column="0" Grid.Row="0" Margin="0,0,14,0">
+                        <ListBox x:Name="ReportsList" Padding="4" />
+                    </GroupBox>
+
+                    <GroupBox x:Name="OverviewGroup" Header="Section overview" Grid.Column="1" Grid.Row="0" Margin="0,0,14,0">
+                        <Grid x:Name="OverviewContentGrid">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition x:Name="PieColumn" Width="0.9*" MinWidth="112" MaxWidth="190" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="PieHost" Grid.Column="0" MinWidth="96" MinHeight="96" Padding="4" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                    <Canvas x:Name="PieCanvas" Width="116" Height="116" />
+                                </Viewbox>
+                            </Border>
+                            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="4,0,0,0">
+                                <StackPanel x:Name="OverviewTextPanel" Margin="8,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="SectionMetricsText" Text="No data" TextWrapping="Wrap" Foreground="#102A43" />
+                                    <TextBlock x:Name="SectionActionsText" Text="Management options" TextWrapping="Wrap" Foreground="#52606D" Margin="0,8,0,0" />
+                                    <StackPanel x:Name="LegendPanel" Margin="0,8,0,0" />
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </GroupBox>
+
+                    <GroupBox x:Name="LogGroup" Header="Execution log" Grid.Column="2" Grid.Row="0">
+                        <TextBox x:Name="ExecutionLogTextBox" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Background="White" BorderBrush="#C9D6E2" />
+                    </GroupBox>
+                </Grid>
+
+                <TextBlock Grid.Row="3" Text="Results" FontSize="17" FontWeight="SemiBold" Foreground="#102A43" Margin="0,16,0,8" />
+
+                <DataGrid
+                    x:Name="ResultsGrid"
+                    Grid.Row="4"
+                    AutoGenerateColumns="True"
+                    CanUserAddRows="False"
+                    IsReadOnly="True"
+                    EnableRowVirtualization="True"
+                    EnableColumnVirtualization="True"
+                    HorizontalScrollBarVisibility="Auto"
+                    VerticalScrollBarVisibility="Auto"
+                    Background="White" />
+            </Grid>
+        </Grid>
+
+        <StatusBar Grid.Row="2" Background="#E4EAF0" MinHeight="32">
+            <StatusBar.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel />
+                </ItemsPanelTemplate>
+            </StatusBar.ItemsPanel>
+            <StatusBarItem>
+                <TextBlock x:Name="ADStatusText" Text="AD: Disconnected" />
+            </StatusBarItem>
+            <Separator />
+            <StatusBarItem>
+                <TextBlock x:Name="EntraStatusText" Text="Entra ID: Disconnected" />
+            </StatusBarItem>
+            <Separator />
+            <StatusBarItem>
+                <TextBlock x:Name="ExchangeStatusText" Text="Exchange Online: Disconnected" />
+            </StatusBarItem>
+            <Separator />
+            <StatusBarItem>
+                <TextBlock x:Name="LastRunText" Text="Last run: Never" />
+            </StatusBarItem>
+            <Separator />
+            <StatusBarItem>
+                <TextBlock x:Name="ResultCountText" Text="Results: 0" />
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

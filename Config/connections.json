@@ -1,0 +1,22 @@
+{
+  "ActiveDirectory": {
+    "Server": "",
+    "SearchBase": "",
+    "CredentialMode": "CurrentUser"
+  },
+  "MicrosoftGraph": {
+    "TenantId": "",
+    "Scopes": [
+      "User.Read.All",
+      "Group.Read.All",
+      "Directory.Read.All",
+      "RoleManagement.Read.Directory",
+      "AuditLog.Read.All",
+      "Reports.Read.All"
+    ]
+  },
+  "ExchangeOnline": {
+    "UserPrincipalName": "",
+    "ShowBanner": false
+  }
+}
