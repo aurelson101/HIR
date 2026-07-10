@@ -21,17 +21,22 @@ function Export-HIRReportHtml {
         $path = Join-Path $reportDirectory ('{0}-{1}.html' -f $safeName, (Get-Date -Format 'yyyyMMdd-HHmmss'))
         $templatePath = Join-Path $RootPath 'Templates\report-template.html'
 
-        $table = if (@($Data).Count -gt 0) {
-            $Data | ConvertTo-Html -Fragment
+        $resultCount = @($Data).Count
+        $table = if ($resultCount -gt 0) {
+            $Data | ConvertTo-Html -Fragment | Out-String
         }
         else {
-            '<p>No result returned.</p>'
+            '<div class="empty">No result returned.</div>'
         }
 
         $template = Get-Content -LiteralPath $templatePath -Raw -Encoding UTF8
         $html = $template.Replace('{{ReportName}}', [System.Net.WebUtility]::HtmlEncode($ReportName)).
-            Replace('{{ExecutionDate}}', [System.Net.WebUtility]::HtmlEncode((Get-Date).ToString('s'))).
-            Replace('{{ResultCount}}', [System.Net.WebUtility]::HtmlEncode(@($Data).Count.ToString())).
+            Replace('{{ToolName}}', [System.Net.WebUtility]::HtmlEncode('Hybrid Identity Reporter')).
+            Replace('{{ExecutionDate}}', [System.Net.WebUtility]::HtmlEncode((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))).
+            Replace('{{ResultCount}}', [System.Net.WebUtility]::HtmlEncode($resultCount.ToString())).
+            Replace('{{ComputerName}}', [System.Net.WebUtility]::HtmlEncode($env:COMPUTERNAME)).
+            Replace('{{UserName}}', [System.Net.WebUtility]::HtmlEncode([System.Security.Principal.WindowsIdentity]::GetCurrent().Name)).
+            Replace('{{RootPath}}', [System.Net.WebUtility]::HtmlEncode($RootPath)).
             Replace('{{Table}}', $table)
 
         Set-Content -LiteralPath $path -Value $html -Encoding UTF8

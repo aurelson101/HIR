@@ -1,0 +1,21 @@
+# Runtime logs
+Logs/*
+!Logs/.gitkeep
+
+# Generated reports and archives
+Reports/*
+!Reports/.gitkeep
+Archive/*
+!Archive/.gitkeep
+
+# PowerShell transient files
+*.tmp
+*.temp
+*.bak
+
+# Windows / editor noise
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
