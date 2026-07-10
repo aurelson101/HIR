@@ -94,7 +94,7 @@
     "Id": "AD.EmptyGroups",
     "DisplayName": "Empty AD Groups",
     "Category": "Active Directory",
-    "Function": "Get-HIRDEmptyGroups",
+    "Function": "Get-HIRADEmptyGroups",
     "Implemented": true
   },
   {

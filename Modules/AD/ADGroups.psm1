@@ -13,7 +13,7 @@ function Get-HIRADDomainAdminsMembers {
     }
 }
 
-function Get-HIRDEmptyGroups {
+function Get-HIRADEmptyGroups {
     [CmdletBinding()]
     param([string]$SearchBase, [string]$Server)
 
@@ -27,4 +27,4 @@ function Get-HIRDEmptyGroups {
     }
 }
 
-Export-ModuleMember -Function Get-HIRADDomainAdminsMembers, Get-HIRDEmptyGroups
+Export-ModuleMember -Function Get-HIRADDomainAdminsMembers, Get-HIRADEmptyGroups

@@ -7,7 +7,7 @@ Ce document liste les améliorations recommandées pour industrialiser **Hybrid 
 | Sujet | Recommandation | Bénéfice |
 | --- | --- | --- |
 | Tests PowerShell | Ajouter des tests Pester pour les modules `Core`, `Export` et le mapping `Config/reports.json`. | Détecte les régressions avant livraison. |
-| Validation du catalogue | Créer une commande `Test-HIRCatalog` réutilisable hors GUI. | Permet une vérification rapide en console ou CI. |
+| Validation projet | Utiliser `Tools\Test-HIRProject.ps1` hors GUI avant livraison. | Permet une vérification rapide en console ou CI. |
 | Validation configuration | Ajouter un schéma JSON ou une validation stricte des clés attendues. | Évite les erreurs silencieuses après modification de `connections.json` ou `appsettings.json`. |
 | Logs | Ajouter une rotation automatique selon `Logging.RetainDays`. | Évite l'accumulation de logs sur le serveur. |
 | Exports | Ajouter une option d'ouverture automatique du fichier exporté après génération. | Améliore l'expérience opérateur. |
@@ -76,6 +76,9 @@ Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase
 [xml]$xaml = Get-Content .\GUI\MainWindow.xaml -Raw
 $reader = New-Object System.Xml.XmlNodeReader $xaml
 [Windows.Markup.XamlReader]::Load($reader) | Out-Null
+
+# Ou lancer la validation complète du projet
+.\Tools\Test-HIRProject.ps1
 ```
 
 ## Améliorations futures de rapports

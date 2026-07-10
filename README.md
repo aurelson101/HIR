@@ -135,6 +135,12 @@ Use `Run Health Check` to validate local prerequisites without changing AD, Entr
 - portability/root folder information
 - connection-state suggestions for Graph and hybrid reports
 
+You can also run the same project-level validation from PowerShell before delivery:
+
+```powershell
+.\Tools\Test-HIRProject.ps1
+```
+
 ## Implemented Priority Reports
 
 - Disabled AD Users
