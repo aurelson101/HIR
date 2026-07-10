@@ -44,4 +44,73 @@ function Get-HIRReportCatalog {
     Get-HIRJsonFile -Path (Join-Path $RootPath 'Config\reports.json')
 }
 
-Export-ModuleMember -Function Get-HIRAppSettings, Get-HIRConnections, Get-HIRReportCatalog, Get-HIRJsonFile
+function Get-HIRPlannedReportSettings {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$RootPath
+    )
+
+    $path = Join-Path $RootPath 'Config\planned-reports.json'
+    if (-not (Test-Path -LiteralPath $path)) {
+        return [pscustomobject]@{
+            ShowPlannedReports   = $true
+            AllowRunPlannedReports = $false
+            PlannedReports       = @()
+        }
+    }
+
+    Get-HIRJsonFile -Path $path
+}
+
+function Merge-HIRPlannedReportSettings {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [object[]]$Reports,
+
+        [AllowNull()]
+        [object]$Settings
+    )
+
+    if (-not $Settings) {
+        return $Reports
+    }
+
+    $plannedOverrides = @{}
+    if ($Settings.PSObject.Properties.Name -contains 'PlannedReports') {
+        foreach ($planned in @($Settings.PlannedReports)) {
+            if ($planned.Id) {
+                $plannedOverrides[$planned.Id] = $planned
+            }
+        }
+    }
+
+    $merged = foreach ($report in $Reports) {
+        if ($report.Implemented -eq $true) {
+            $report
+            continue
+        }
+
+        $override = if ($plannedOverrides.ContainsKey($report.Id)) { $plannedOverrides[$report.Id] } else { $null }
+        $visible = $true
+        if ($override -and $override.PSObject.Properties.Name -contains 'Visible') {
+            $visible = [bool]$override.Visible
+        }
+        if (-not $visible) {
+            continue
+        }
+
+        foreach ($propertyName in @('Priority', 'RiskLevel', 'Note')) {
+            if ($override -and $override.PSObject.Properties.Name -contains $propertyName -and $override.$propertyName) {
+                $report.$propertyName = $override.$propertyName
+            }
+        }
+
+        $report
+    }
+
+    @($merged)
+}
+
+Export-ModuleMember -Function Get-HIRAppSettings, Get-HIRConnections, Get-HIRReportCatalog, Get-HIRPlannedReportSettings, Merge-HIRPlannedReportSettings, Get-HIRJsonFile

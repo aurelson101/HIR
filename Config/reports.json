@@ -4,209 +4,499 @@
     "DisplayName": "Disabled AD Users",
     "Category": "Active Directory",
     "Function": "Get-HIRADDisabledUsers",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "High",
+    "RiskLevel": "High",
+    "Note": "Review disabled AD users and mailbox-related attributes for lifecycle cleanup."
   },
   {
     "Id": "Hybrid.DisabledADUsersVisibleInGAL",
     "DisplayName": "Disabled AD users still visible in GAL",
     "Category": "Hybrid Reports",
     "Function": "Get-HIRHybridDisabledADUsersVisibleInGAL",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "High",
+    "RiskLevel": "High",
+    "Note": "Detect disabled AD users still visible or potentially visible in Exchange address lists."
   },
   {
     "Id": "Entra.CloudOnlyUsers",
     "DisplayName": "Cloud-only Entra users",
     "Category": "Entra ID",
     "Function": "Get-HIREntraCloudOnlyUsers",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Review cloud-only member users and identity source of authority."
   },
   {
     "Id": "Entra.GuestUsers",
     "DisplayName": "Guest Entra users",
     "Category": "Entra ID",
     "Function": "Get-HIREntraGuestUsers",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Review external guest accounts and lifecycle state."
   },
   {
     "Id": "Exchange.MailboxesWithForwarding",
     "DisplayName": "Mailboxes with forwarding enabled",
     "Category": "Exchange Online",
     "Function": "Get-HIRExchangeMailboxesWithForwarding",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "High",
+    "RiskLevel": "High",
+    "Note": "Review mailbox forwarding and business justification."
   },
   {
     "Id": "AD.LockedUsers",
     "DisplayName": "Locked AD Users",
     "Category": "Active Directory",
     "Function": "Get-HIRADLockedUsers",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Review locked accounts for helpdesk and security signals."
   },
   {
     "Id": "AD.InactiveUsers90Days",
     "DisplayName": "Inactive AD Users over 90 days",
     "Category": "Active Directory",
     "Function": "Get-HIRADInactiveUsers",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "High",
+    "RiskLevel": "Medium",
+    "Note": "Find stale user accounts based on inactivity threshold."
   },
   {
     "Id": "AD.PasswordNeverExpires",
     "DisplayName": "Password Never Expires",
     "Category": "Security / IAM",
     "Function": "Get-HIRADPasswordNeverExpiresUsers",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "High",
+    "RiskLevel": "High",
+    "Note": "Identify enabled accounts with passwords that never expire."
   },
   {
     "Id": "AD.DomainAdminsMembers",
     "DisplayName": "Domain Admins Members",
     "Category": "Security / IAM",
     "Function": "Get-HIRADDomainAdminsMembers",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "High",
+    "RiskLevel": "Critical",
+    "Note": "Review recursive Domain Admins membership."
   },
   {
     "Id": "AD.AdminCountUsers",
     "DisplayName": "AdminCount = 1 Users",
     "Category": "Security / IAM",
     "Function": "Get-HIRADAdminCountUsers",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "High",
+    "RiskLevel": "High",
+    "Note": "Find accounts protected by AdminSDHolder history or privileged membership."
   },
   {
     "Id": "AD.UsersWithoutEmail",
     "DisplayName": "Users Without Email",
     "Category": "Active Directory",
     "Function": "Get-HIRADUsersWithoutEmail",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Low",
+    "RiskLevel": "Low",
+    "Note": "Improve AD data quality for mail-enabled identity workflows."
   },
   {
     "Id": "AD.UsersWithoutManager",
     "DisplayName": "Users Without Manager",
     "Category": "Active Directory",
     "Function": "Get-HIRADUsersWithoutManager",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Low",
+    "RiskLevel": "Low",
+    "Note": "Improve directory governance and ownership data."
   },
   {
     "Id": "AD.InactiveComputers90Days",
     "DisplayName": "Inactive Computers over 90 days",
     "Category": "Active Directory",
     "Function": "Get-HIRADInactiveComputers",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Find stale computer objects for inventory cleanup."
   },
   {
     "Id": "AD.EmptyGroups",
     "DisplayName": "Empty AD Groups",
     "Category": "Active Directory",
     "Function": "Get-HIRADEmptyGroups",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Low",
+    "RiskLevel": "Low",
+    "Note": "Find groups without members for cleanup review."
   },
   {
     "Id": "Entra.SyncedUsers",
     "DisplayName": "Synced Users",
     "Category": "Entra ID",
     "Function": "Get-HIREntraSyncedUsers",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Low",
+    "RiskLevel": "Low",
+    "Note": "Inventory synchronized Entra users."
   },
   {
     "Id": "Entra.DisabledUsers",
     "DisplayName": "Disabled Entra Users",
     "Category": "Entra ID",
     "Function": "Get-HIREntraDisabledUsers",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Review disabled Entra users for lifecycle and licensing cleanup."
   },
   {
     "Id": "Entra.LicensedUsers",
     "DisplayName": "Licensed Users",
     "Category": "Entra ID",
     "Function": "Get-HIREntraLicensedUsers",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Low",
+    "RiskLevel": "Low",
+    "Note": "Inventory licensed users and license count."
   },
   {
     "Id": "Entra.UsersWithoutLicense",
     "DisplayName": "Users Without License",
     "Category": "Entra ID",
     "Function": "Get-HIREntraUsersWithoutLicense",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Low",
+    "RiskLevel": "Low",
+    "Note": "Review users without assigned licenses."
   },
   {
     "Id": "Entra.Groups",
     "DisplayName": "Entra Groups",
     "Category": "Entra ID",
     "Function": "Get-HIREntraGroups",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Inventory Entra groups, mail/security flags and group types."
   },
   {
     "Id": "Entra.AdminRoleMembers",
     "DisplayName": "Entra Admin Role Members",
     "Category": "Security / IAM",
     "Function": "Get-HIREntraAdminRoleMembers",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "High",
+    "RiskLevel": "Critical",
+    "Note": "Review privileged Entra role membership."
   },
   {
     "Id": "Exchange.UserMailboxes",
     "DisplayName": "User Mailboxes",
     "Category": "Exchange Online",
     "Function": "Get-HIRExchangeUserMailboxes",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Low",
+    "RiskLevel": "Low",
+    "Note": "Inventory Exchange Online user mailboxes."
   },
   {
     "Id": "Exchange.SharedMailboxes",
     "DisplayName": "Shared Mailboxes",
     "Category": "Exchange Online",
     "Function": "Get-HIRExchangeSharedMailboxes",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Inventory shared mailboxes for ownership review."
   },
   {
     "Id": "Exchange.HiddenFromGAL",
     "DisplayName": "Hidden From GAL",
     "Category": "Exchange Online",
     "Function": "Get-HIRExchangeHiddenFromGAL",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Review recipients hidden from address lists."
   },
   {
     "Id": "Hybrid.ADUsersMissingMailNickname",
     "DisplayName": "AD users missing mailNickname",
     "Category": "Hybrid Reports",
     "Function": "Get-HIRHybridADUsersMissingMailNickname",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Find mail-enabled AD users missing mailNickname."
   },
   {
     "Id": "Hybrid.ADUsersMissingProxyAddresses",
     "DisplayName": "AD users missing proxyAddresses",
     "Category": "Hybrid Reports",
     "Function": "Get-HIRHybridADUsersMissingProxyAddresses",
-    "Implemented": true
+    "Implemented": true,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Find mail-enabled AD users missing proxyAddresses."
   },
   {
     "Id": "Entra.UsersWithoutMFAMethods",
     "DisplayName": "Users Without MFA Methods",
     "Category": "Security / IAM",
     "Function": "Get-HIREntraUsersWithoutMFAMethods",
-    "Implemented": false
+    "Implemented": false,
+    "Priority": "High",
+    "RiskLevel": "Critical",
+    "Note": "Planned report for users without registered MFA methods."
   },
   {
     "Id": "Exchange.FullAccessMailboxPermissions",
     "DisplayName": "Full Access Mailbox Permissions",
     "Category": "Exchange Online",
     "Function": "Get-HIRExchangeFullAccessMailboxPermissions",
-    "Implemented": false
+    "Implemented": false,
+    "Priority": "High",
+    "RiskLevel": "High",
+    "Note": "Planned mailbox delegation review for Full Access permissions."
   },
   {
     "Id": "Exchange.SendAsPermissions",
     "DisplayName": "Send As Permissions",
     "Category": "Exchange Online",
     "Function": "Get-HIRExchangeSendAsPermissions",
-    "Implemented": false
+    "Implemented": false,
+    "Priority": "High",
+    "RiskLevel": "High",
+    "Note": "Planned mailbox delegation review for Send As permissions."
   },
   {
     "Id": "Hybrid.DuplicateUPN",
     "DisplayName": "Duplicate UPN",
     "Category": "Hybrid Reports",
     "Function": "Get-HIRHybridDuplicateUPN",
-    "Implemented": false
+    "Implemented": false,
+    "Priority": "Medium",
+    "RiskLevel": "High",
+    "Note": "Planned duplicate UPN detection across hybrid identity sources."
   },
   {
     "Id": "Hybrid.DuplicateProxyAddresses",
     "DisplayName": "Duplicate proxyAddresses",
     "Category": "Hybrid Reports",
     "Function": "Get-HIRHybridDuplicateProxyAddresses",
-    "Implemented": false
+    "Implemented": false,
+    "Priority": "Medium",
+    "RiskLevel": "High",
+    "Note": "Planned duplicate proxy address detection."
+  },
+  {
+    "Id": "Entra.PrivilegedRoleRisk",
+    "DisplayName": "Privileged Entra role risk view",
+    "Category": "Security / IAM",
+    "Function": "Get-HIREntraPrivilegedRoleRisk",
+    "Implemented": false,
+    "Priority": "High",
+    "RiskLevel": "Critical",
+    "Note": "Planned risk view extending Entra Admin Role Members with critical role, guest account and cloud-only admin signals."
+  },
+  {
+    "Id": "Exchange.SendOnBehalfPermissions",
+    "DisplayName": "Send On Behalf Permissions",
+    "Category": "Exchange Online",
+    "Function": "Get-HIRExchangeSendOnBehalfPermissions",
+    "Implemented": false,
+    "Priority": "High",
+    "RiskLevel": "High",
+    "Note": "Planned mailbox delegation review for Send on Behalf permissions."
+  },
+  {
+    "Id": "Exchange.ExternalForwarding",
+    "DisplayName": "External Mail Forwarding",
+    "Category": "Exchange Online",
+    "Function": "Get-HIRExchangeExternalForwarding",
+    "Implemented": false,
+    "Priority": "High",
+    "RiskLevel": "High",
+    "Note": "Planned refinement of Mailboxes with forwarding enabled, isolating external forwarding from internal forwarding."
+  },
+  {
+    "Id": "AD.ExpiredOrNeverLoggedOnUsers",
+    "DisplayName": "Expired or Never Logged On AD Users",
+    "Category": "Active Directory",
+    "Function": "Get-HIRADExpiredOrNeverLoggedOnUsers",
+    "Implemented": false,
+    "Priority": "High",
+    "RiskLevel": "High",
+    "Note": "Planned report for expired accounts and users that never logged on."
+  },
+  {
+    "Id": "AD.OldPasswordLastSet",
+    "DisplayName": "Old PasswordLastSet Users",
+    "Category": "Active Directory",
+    "Function": "Get-HIRADOldPasswordLastSetUsers",
+    "Implemented": false,
+    "Priority": "High",
+    "RiskLevel": "Medium",
+    "Note": "Planned report for accounts with very old PasswordLastSet values."
+  },
+  {
+    "Id": "AD.AdminPasswordNeverExpires",
+    "DisplayName": "Admin Accounts Password Never Expires",
+    "Category": "Security / IAM",
+    "Function": "Get-HIRADAdminPasswordNeverExpiresUsers",
+    "Implemented": false,
+    "Priority": "High",
+    "RiskLevel": "Critical",
+    "Note": "Planned refinement of Password Never Expires, focused only on privileged AD accounts."
+  },
+  {
+    "Id": "AD.ExtendedPrivilegedGroupsMembers",
+    "DisplayName": "Extended Privileged AD Groups Members",
+    "Category": "Security / IAM",
+    "Function": "Get-HIRADExtendedPrivilegedGroupsMembers",
+    "Implemented": false,
+    "Priority": "High",
+    "RiskLevel": "Critical",
+    "Note": "Planned review for Enterprise Admins, Schema Admins, Operators and other privileged groups."
+  },
+  {
+    "Id": "Hybrid.ADObjectsWithoutEntraMatch",
+    "DisplayName": "AD Objects Without Entra Match",
+    "Category": "Hybrid Reports",
+    "Function": "Get-HIRHybridADObjectsWithoutEntraMatch",
+    "Implemented": false,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Planned sync gap report for AD objects with no matching Entra object."
+  },
+  {
+    "Id": "Entra.CloudOnlyAdmins",
+    "DisplayName": "Cloud-only Entra Admins",
+    "Category": "Security / IAM",
+    "Function": "Get-HIREntraCloudOnlyAdmins",
+    "Implemented": false,
+    "Priority": "Medium",
+    "RiskLevel": "High",
+    "Note": "Planned cross-check between Cloud-only Entra users and Entra admin role membership."
+  },
+  {
+    "Id": "Entra.GuestAdminRoleMembers",
+    "DisplayName": "Guest Users in Admin Roles",
+    "Category": "Security / IAM",
+    "Function": "Get-HIREntraGuestAdminRoleMembers",
+    "Implemented": false,
+    "Priority": "Medium",
+    "RiskLevel": "Critical",
+    "Note": "Planned cross-check between Guest Entra users and Entra admin role membership."
+  },
+  {
+    "Id": "Entra.GroupsWithoutOwners",
+    "DisplayName": "Entra Groups Without Owners",
+    "Category": "Entra ID",
+    "Function": "Get-HIREntraGroupsWithoutOwners",
+    "Implemented": false,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Planned governance report for Entra groups without owners."
+  },
+  {
+    "Id": "AD.GroupsWithoutManagedBy",
+    "DisplayName": "AD Groups Without managedBy",
+    "Category": "Active Directory",
+    "Function": "Get-HIRADGroupsWithoutManagedBy",
+    "Implemented": false,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Planned governance report for AD groups without managedBy."
+  },
+  {
+    "Id": "Entra.DisabledLicensedUsers",
+    "DisplayName": "Disabled Users With Licenses",
+    "Category": "Entra ID",
+    "Function": "Get-HIREntraDisabledLicensedUsers",
+    "Implemented": false,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Planned cross-check between Disabled Entra Users and Licensed Users to identify wasted licenses."
+  },
+  {
+    "Id": "Exchange.SharedMailboxesWithEnabledAccount",
+    "DisplayName": "Shared Mailboxes With Enabled Account",
+    "Category": "Exchange Online",
+    "Function": "Get-HIRExchangeSharedMailboxesWithEnabledAccount",
+    "Implemented": false,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Planned refinement of Shared Mailboxes, checking whether the backing sign-in account is enabled."
+  },
+  {
+    "Id": "Exchange.HiddenFromGALActiveRecipients",
+    "DisplayName": "Hidden From GAL But Active",
+    "Category": "Exchange Online",
+    "Function": "Get-HIRExchangeHiddenFromGALActiveRecipients",
+    "Implemented": false,
+    "Priority": "Medium",
+    "RiskLevel": "Medium",
+    "Note": "Planned refinement of Hidden From GAL, focused on active recipients that may need policy review."
+  },
+  {
+    "Id": "Export.Json",
+    "DisplayName": "Export JSON",
+    "Category": "Exports",
+    "Function": "Export-HIRReportJson",
+    "Implemented": false,
+    "Priority": "Low",
+    "RiskLevel": "Low",
+    "Note": "Planned JSON export for SIEM or automation integration."
+  },
+  {
+    "Id": "Executive.SummaryHtml",
+    "DisplayName": "Executive Summary HTML",
+    "Category": "Executive Summary",
+    "Function": "Export-HIRExecutiveSummaryHtml",
+    "Implemented": false,
+    "Priority": "Low",
+    "RiskLevel": "Medium",
+    "Note": "Planned high-level summary with scores and counters."
+  },
+  {
+    "Id": "Executive.CompareExports",
+    "DisplayName": "Compare Two Exports",
+    "Category": "Executive Summary",
+    "Function": "Compare-HIRReportExports",
+    "Implemented": false,
+    "Priority": "Low",
+    "RiskLevel": "Low",
+    "Note": "Planned comparison between two report exports."
+  },
+  {
+    "Id": "Executive.RunHistory",
+    "DisplayName": "Run History",
+    "Category": "Executive Summary",
+    "Function": "Get-HIRRunHistory",
+    "Implemented": false,
+    "Priority": "Low",
+    "RiskLevel": "Low",
+    "Note": "Planned run history for monthly tracking."
+  },
+  {
+    "Id": "Executive.ReportRiskScore",
+    "DisplayName": "Report Risk Score",
+    "Category": "Executive Summary",
+    "Function": "Get-HIRReportRiskScore",
+    "Implemented": false,
+    "Priority": "Low",
+    "RiskLevel": "Medium",
+    "Note": "Planned risk scoring view for prioritization."
   }
 ]

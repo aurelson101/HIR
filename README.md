@@ -2,6 +2,8 @@
 
 ![Hybrid Identity Reporter presentation](./HIR.png)
 
+Current version: `0.2.0`
+
 Hybrid Identity Reporter is a read-only PowerShell/WPF audit tool for hybrid identity environments:
 
 - Active Directory on-premise
@@ -14,7 +16,7 @@ This version implements the main read-only audit reports and provides a modular 
 ## Prerequisites
 
 - Windows workstation or admin server
-- PowerShell 7 recommended, Windows PowerShell 5.1 supported for WPF
+- Windows PowerShell 5.1 recommended for the WPF GUI launcher
 - Network access to domain controllers
 - Appropriate read-only permissions in Active Directory, Entra ID and Exchange Online
 - For AD reports, RSAT Active Directory PowerShell tools must be installed
@@ -82,11 +84,25 @@ Edit `Config/connections.json` before first use if you need tenant-specific or d
 - `MicrosoftGraph.TenantId`: optional tenant ID
 - `ExchangeOnline.UserPrincipalName`: optional admin UPN
 
+Edit `Config/planned-reports.json` to control planned report visibility and metadata without changing the main catalog:
+
+- `ShowPlannedReports`: show or hide planned reports in the GUI
+- `AllowRunPlannedReports`: kept `false` by default because planned reports are roadmap items
+- `PlannedReports`: optional overrides for planned report visibility, priority, risk level and note
+
 All implemented functions are read-only. This version does not call `Set-ADUser`, `Set-Mailbox`, `Update-MgUser`, or any corrective command.
+
+Built-in AD groups are resolved by SID/RID when possible. For example, `Domain Admins Members` uses the domain SID plus RID `512`, so it works with localized domains where the group is named `Admins du domaine` instead of `Domain Admins`.
 
 ## Launch
 
 From the project folder:
+
+```cmd
+launch.bat
+```
+
+Or directly from PowerShell:
 
 ```powershell
 .\Start-Hybrid-Identity-Reporter.ps1
@@ -121,6 +137,10 @@ The left menu filters the report catalog by area. The Dashboard is the root view
 - Debug / Health: local diagnostics, log/report folder shortcuts and dependency checks
 
 Reports marked `(planned)` are visible in the catalog but are intentionally not executable yet.
+
+The report list supports search plus status and risk filters. The catalog also carries `Priority`, `RiskLevel` and `Note` fields to separate executable reports from the audit roadmap.
+
+Use the `Show planned` checkbox in the report filters to show or hide planned reports from the GUI. The choice is saved to `Config/planned-reports.json`.
 
 ## Debug / Health
 
@@ -170,6 +190,8 @@ You can also run the same project-level validation from PowerShell before delive
 - AD users missing proxyAddresses
 
 The report catalog is defined in `Config/reports.json`. Add future reports there after adding the matching function in the relevant `.psm1` module.
+
+Planned report display settings are defined in `Config/planned-reports.json`.
 
 ## Export Reports
 
@@ -224,8 +246,13 @@ The application also includes:
 
 ```text
 Hybrid-Identity-Reporter/
+|-- launch.bat
 |-- Start-Hybrid-Identity-Reporter.ps1
 |-- Config/
+|   |-- appsettings.json
+|   |-- connections.json
+|   |-- planned-reports.json
+|   `-- reports.json
 |-- GUI/
 |-- Modules/
 |   |-- Core/
@@ -237,6 +264,9 @@ Hybrid-Identity-Reporter/
 |-- Reports/
 |-- Archive/
 |-- Logs/
+|-- Tools/
+|   `-- Test-HIRProject.ps1
+|-- CHANGELOG.md
 `-- Templates/
 ```
 

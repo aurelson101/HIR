@@ -1,0 +1,42 @@
+﻿{
+    "ShowPlannedReports":  true,
+    "AllowRunPlannedReports":  false,
+    "Description":  "Controls planned report visibility and metadata overrides. The application UI remains in English.",
+    "PlannedReports":  [
+                           {
+                               "Id":  "AD.AdminPasswordNeverExpires",
+                               "Visible":  true,
+                               "Priority":  "High",
+                               "RiskLevel":  "Critical",
+                               "Note":  "Planned refinement of Password Never Expires, focused only on privileged AD accounts."
+                           },
+                           {
+                               "Id":  "AD.ExtendedPrivilegedGroupsMembers",
+                               "Visible":  true,
+                               "Priority":  "High",
+                               "RiskLevel":  "Critical",
+                               "Note":  "Planned AD privileged groups report. Built-in groups must be resolved by SID/RID to support localized domains."
+                           },
+                           {
+                               "Id":  "Exchange.FullAccessMailboxPermissions",
+                               "Visible":  true,
+                               "Priority":  "High",
+                               "RiskLevel":  "High",
+                               "Note":  "Planned mailbox delegation review for Full Access permissions."
+                           },
+                           {
+                               "Id":  "Exchange.SendAsPermissions",
+                               "Visible":  true,
+                               "Priority":  "High",
+                               "RiskLevel":  "High",
+                               "Note":  "Planned mailbox delegation review for Send As permissions."
+                           },
+                           {
+                               "Id":  "Entra.UsersWithoutMFAMethods",
+                               "Visible":  true,
+                               "Priority":  "High",
+                               "RiskLevel":  "Critical",
+                               "Note":  "Planned report for users without registered MFA methods."
+                           }
+                       ]
+}

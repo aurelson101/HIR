@@ -55,7 +55,7 @@ function Test-HIRProject {
         Add-CheckResult -Results $results -Area 'PowerShell' -Check $file.FullName.Replace($resolvedRoot, '.').TrimStart('\') -Status $(if ($errors.Count -eq 0) { 'OK' } else { 'Error' }) -Details $(if ($errors.Count -eq 0) { 'Parsed successfully' } else { $errors[0].Message })
     }
 
-    foreach ($jsonFile in @('appsettings.json', 'connections.json', 'reports.json')) {
+    foreach ($jsonFile in @('appsettings.json', 'connections.json', 'reports.json', 'planned-reports.json')) {
         $path = Join-Path $resolvedRoot "Config\$jsonFile"
         try {
             Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json | Out-Null
@@ -97,6 +97,30 @@ function Test-HIRProject {
 
         $duplicateIds = @($reports | Group-Object Id | Where-Object Count -gt 1)
         Add-CheckResult -Results $results -Area 'Catalog' -Check 'Duplicate report IDs' -Status $(if ($duplicateIds.Count -eq 0) { 'OK' } else { 'Error' }) -Details $(if ($duplicateIds.Count -eq 0) { 'No duplicate report IDs' } else { ($duplicateIds.Name -join ', ') })
+
+        $duplicateDisplayNames = @($reports | Group-Object DisplayName | Where-Object Count -gt 1)
+        Add-CheckResult -Results $results -Area 'Catalog' -Check 'Duplicate display names' -Status $(if ($duplicateDisplayNames.Count -eq 0) { 'OK' } else { 'Error' }) -Details $(if ($duplicateDisplayNames.Count -eq 0) { 'No duplicate display names' } else { ($duplicateDisplayNames.Name -join ', ') })
+
+        $duplicateFunctions = @($reports | Group-Object Function | Where-Object Count -gt 1)
+        Add-CheckResult -Results $results -Area 'Catalog' -Check 'Duplicate function mappings' -Status $(if ($duplicateFunctions.Count -eq 0) { 'OK' } else { 'Error' }) -Details $(if ($duplicateFunctions.Count -eq 0) { 'No duplicate function mappings' } else { ($duplicateFunctions.Name -join ', ') })
+
+        $missingMetadata = @($reports | Where-Object {
+            -not ($_.PSObject.Properties.Name -contains 'Priority') -or
+            -not ($_.PSObject.Properties.Name -contains 'RiskLevel') -or
+            -not ($_.PSObject.Properties.Name -contains 'Note')
+        })
+        Add-CheckResult -Results $results -Area 'Catalog' -Check 'Report metadata' -Status $(if ($missingMetadata.Count -eq 0) { 'OK' } else { 'Warning' }) -Details $(if ($missingMetadata.Count -eq 0) { 'All reports include Priority, RiskLevel and Note' } else { ($missingMetadata.Id -join ', ') })
+
+        $plannedWithExistingFunction = @($reports | Where-Object { $_.Implemented -ne $true -and $_.Function -in $definedFunctions })
+        Add-CheckResult -Results $results -Area 'Catalog' -Check 'Planned reports with existing functions' -Status $(if ($plannedWithExistingFunction.Count -eq 0) { 'OK' } else { 'Warning' }) -Details $(if ($plannedWithExistingFunction.Count -eq 0) { 'No planned report points to an existing function' } else { ($plannedWithExistingFunction.Id -join ', ') })
+
+        $plannedSettingsPath = Join-Path $resolvedRoot 'Config\planned-reports.json'
+        if (Test-Path -LiteralPath $plannedSettingsPath) {
+            $plannedSettings = Get-Content -LiteralPath $plannedSettingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            $configuredPlannedIds = @($plannedSettings.PlannedReports | Where-Object { $_.Id } | ForEach-Object { $_.Id })
+            $unknownPlannedIds = @($configuredPlannedIds | Where-Object { $_ -notin $reports.Id })
+            Add-CheckResult -Results $results -Area 'Catalog' -Check 'Planned report configuration IDs' -Status $(if ($unknownPlannedIds.Count -eq 0) { 'OK' } else { 'Warning' }) -Details $(if ($unknownPlannedIds.Count -eq 0) { "$($configuredPlannedIds.Count) configured planned report IDs are valid" } else { ($unknownPlannedIds -join ', ') })
+        }
     }
     catch {
         Add-CheckResult -Results $results -Area 'Catalog' -Check 'Catalog validation' -Status 'Error' -Details $_.Exception.Message
@@ -111,6 +135,20 @@ function Test-HIRProject {
     }
     else {
         Add-CheckResult -Results $results -Area 'Docs' -Check 'REPORTS-PAR-MENU.md' -Status 'Warning' -Details 'File not found'
+    }
+
+    try {
+        $appSettings = Get-Content -LiteralPath (Join-Path $resolvedRoot 'Config\appsettings.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        $readmePath = Join-Path $resolvedRoot 'README.md'
+        $changelogPath = Join-Path $resolvedRoot 'CHANGELOG.md'
+        $version = [string]$appSettings.Version
+        $readme = if (Test-Path -LiteralPath $readmePath) { Get-Content -LiteralPath $readmePath -Raw -Encoding UTF8 } else { '' }
+        $changelog = if (Test-Path -LiteralPath $changelogPath) { Get-Content -LiteralPath $changelogPath -Raw -Encoding UTF8 } else { '' }
+        $versionDocumented = $readme -match [regex]::Escape($version) -and $changelog -match [regex]::Escape($version)
+        Add-CheckResult -Results $results -Area 'Docs' -Check 'Version documentation' -Status $(if ($versionDocumented) { 'OK' } else { 'Warning' }) -Details $(if ($versionDocumented) { "Version $version documented in README and CHANGELOG" } else { "Version $version missing from README or CHANGELOG" })
+    }
+    catch {
+        Add-CheckResult -Results $results -Area 'Docs' -Check 'Version documentation' -Status 'Warning' -Details $_.Exception.Message
     }
 
     $results

@@ -52,10 +52,12 @@ catch {
 }
 $script:AppSettings = Get-HIRAppSettings -RootPath $script:RootPath
 $script:Connections = Get-HIRConnections -RootPath $script:RootPath
-$script:ReportCatalog = @(Get-HIRReportCatalog -RootPath $script:RootPath)
+$script:PlannedReportSettings = Get-HIRPlannedReportSettings -RootPath $script:RootPath
+$script:ReportCatalog = @(Merge-HIRPlannedReportSettings -Reports @(Get-HIRReportCatalog -RootPath $script:RootPath) -Settings $script:PlannedReportSettings)
 $script:CurrentResults = @()
 $script:CurrentReportName = $null
 $script:IsBusy = $false
+$script:LastExportPath = $null
 $script:InstallTimeoutMinutes = if ($script:AppSettings.PSObject.Properties.Name -contains 'Runtime' -and $script:AppSettings.Runtime.PSObject.Properties.Name -contains 'InstallTimeoutMinutes') { [Math]::Max(1, [int]$script:AppSettings.Runtime.InstallTimeoutMinutes) } else { 30 }
 $script:MaxUiLogCharacters = if ($script:AppSettings.PSObject.Properties.Name -contains 'Runtime' -and $script:AppSettings.Runtime.PSObject.Properties.Name -contains 'MaxUiLogCharacters') { [Math]::Max(5000, [int]$script:AppSettings.Runtime.MaxUiLogCharacters) } else { 60000 }
 $script:LargeResultWarningThreshold = if ($script:AppSettings.PSObject.Properties.Name -contains 'Runtime' -and $script:AppSettings.Runtime.PSObject.Properties.Name -contains 'LargeResultWarningThreshold') { [Math]::Max(100, [int]$script:AppSettings.Runtime.LargeResultWarningThreshold) } else { 10000 }
@@ -75,6 +77,21 @@ function Get-Control {
     $window.FindName($Name)
 }
 
+function Show-HIRMessageBox {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Message,
+
+        [string]$Title = $script:AppSettings.ApplicationName,
+
+        [System.Windows.MessageBoxButton]$Button = [System.Windows.MessageBoxButton]::OK,
+
+        [System.Windows.MessageBoxImage]$Image = [System.Windows.MessageBoxImage]::None
+    )
+
+    [System.Windows.MessageBox]::Show($window, $Message, $Title, $Button, $Image)
+}
+
 $controls = @{
     ReportsList         = Get-Control -Name ReportsList
     NavigationList      = Get-Control -Name NavigationList
@@ -88,13 +105,19 @@ $controls = @{
     ConnectEntraButton  = Get-Control -Name ConnectEntraButton
     ConnectExchangeButton = Get-Control -Name ConnectExchangeButton
     RunReportButton     = Get-Control -Name RunReportButton
+    RunMenuReportsButton = Get-Control -Name RunMenuReportsButton
     ExportCsvButton     = Get-Control -Name ExportCsvButton
     ExportExcelButton   = Get-Control -Name ExportExcelButton
     ExportHtmlButton    = Get-Control -Name ExportHtmlButton
     ClearResultsButton  = Get-Control -Name ClearResultsButton
     OpenReportsButton   = Get-Control -Name OpenReportsButton
+    OpenLastExportButton = Get-Control -Name OpenLastExportButton
     OpenLogsButton      = Get-Control -Name OpenLogsButton
     HealthCheckButton   = Get-Control -Name HealthCheckButton
+    ReportSearchBox     = Get-Control -Name ReportSearchBox
+    ReportStatusFilter  = Get-Control -Name ReportStatusFilter
+    ReportRiskFilter    = Get-Control -Name ReportRiskFilter
+    ShowPlannedReportsCheckBox = Get-Control -Name ShowPlannedReportsCheckBox
     ADStatusText        = Get-Control -Name ADStatusText
     EntraStatusText     = Get-Control -Name EntraStatusText
     ExchangeStatusText  = Get-Control -Name ExchangeStatusText
@@ -147,7 +170,7 @@ function Set-BusyState {
 
     $script:IsBusy = $Busy
     $isEnabled = -not $Busy
-    foreach ($buttonName in @('ConnectADButton', 'ConnectEntraButton', 'ConnectExchangeButton', 'RunReportButton', 'ExportCsvButton', 'ExportExcelButton', 'ExportHtmlButton', 'ClearResultsButton', 'OpenReportsButton', 'OpenLogsButton', 'HealthCheckButton')) {
+    foreach ($buttonName in @('ConnectADButton', 'ConnectEntraButton', 'ConnectExchangeButton', 'RunReportButton', 'RunMenuReportsButton', 'ExportCsvButton', 'ExportExcelButton', 'ExportHtmlButton', 'ClearResultsButton', 'OpenReportsButton', 'OpenLastExportButton', 'OpenLogsButton', 'HealthCheckButton')) {
         if ($controls[$buttonName]) {
             $controls[$buttonName].IsEnabled = $isEnabled
         }
@@ -208,6 +231,7 @@ function Get-SectionManagementRows {
         'Dashboard' {
             @(
                 [pscustomobject]@{ Menu = 'Active Directory'; Purpose = 'Pilot on-premises identity inventory and hygiene reports.'; NextStep = 'Click the green pie slice or select Active Directory.' }
+                [pscustomobject]@{ Menu = 'Executive Summary'; Purpose = 'Review high-level roadmap, risk and audit score items.'; NextStep = 'Filter Critical/High risks and track planned reports.' }
                 [pscustomobject]@{ Menu = 'Entra ID'; Purpose = 'Run Microsoft Graph identity, guest, sync and license reports.'; NextStep = 'Connect Entra ID, then choose a report.' }
                 [pscustomobject]@{ Menu = 'Exchange Online'; Purpose = 'Audit mailbox inventory, forwarding and GAL visibility.'; NextStep = 'Connect Exchange Online, then run mailbox reports.' }
                 [pscustomobject]@{ Menu = 'Hybrid Reports'; Purpose = 'Compare AD and cloud/Exchange attributes for hybrid inconsistencies.'; NextStep = 'Connect required services, then run hybrid checks.' }
@@ -224,6 +248,13 @@ function Get-SectionManagementRows {
                 [pscustomobject]@{ Action = 'Audit locked/inactive accounts'; Scope = 'Users'; Notes = 'Use Locked AD Users and Inactive AD Users reports.' }
                 [pscustomobject]@{ Action = 'Review privileged groups'; Scope = 'Security'; Notes = 'Run Domain Admins Members and AdminCount reports.' }
                 [pscustomobject]@{ Action = 'Export evidence'; Scope = 'Reports'; Notes = 'Export current report to CSV, Excel or HTML.' }
+            )
+        }
+        'Executive Summary' {
+            @(
+                [pscustomobject]@{ Action = 'Review critical risks'; Scope = 'Summary'; Notes = 'Filter Critical and High risk reports.' }
+                [pscustomobject]@{ Action = 'Track planned reports'; Scope = 'Roadmap'; Notes = 'Use status filter Planned to see next audit additions.' }
+                [pscustomobject]@{ Action = 'Generate evidence'; Scope = 'Exports'; Notes = 'Executive summary HTML and risk scoring are planned.' }
             )
         }
         'Hybrid Reports' {
@@ -270,6 +301,7 @@ function Get-SectionManagementRows {
                 [pscustomobject]@{ Action = 'Edit connections.json'; Scope = 'Configuration'; Notes = Join-Path $script:RootPath 'Config\connections.json' }
                 [pscustomobject]@{ Action = 'Edit appsettings.json'; Scope = 'Configuration'; Notes = Join-Path $script:RootPath 'Config\appsettings.json' }
                 [pscustomobject]@{ Action = 'Configure reports.json'; Scope = 'Catalog'; Notes = Join-Path $script:RootPath 'Config\reports.json' }
+                [pscustomobject]@{ Action = 'Configure planned reports'; Scope = 'Catalog'; Notes = Join-Path $script:RootPath 'Config\planned-reports.json' }
             )
         }
         'Debug / Health' {
@@ -303,7 +335,7 @@ function Invoke-HealthCheck {
     )
 
     $checks = New-Object System.Collections.Generic.List[object]
-    $checks.Add([pscustomobject]@{ Area = 'Runtime'; Check = 'PowerShell Version'; Status = $PSVersionTable.PSVersion.ToString(); Recommendation = if ($PSVersionTable.PSVersion.Major -lt 7) { 'PowerShell 7 is recommended, Windows PowerShell 5.1 is supported for WPF.' } else { 'OK' } })
+    $checks.Add([pscustomobject]@{ Area = 'Runtime'; Check = 'PowerShell Version'; Status = $PSVersionTable.PSVersion.ToString(); Recommendation = if ($PSVersionTable.PSVersion.Major -eq 5) { 'OK for WPF GUI and RSAT modules.' } else { 'Windows PowerShell 5.1 is recommended for the WPF launcher.' } })
     $checks.Add([pscustomobject]@{ Area = 'Runtime'; Check = 'STA Mode'; Status = [System.Threading.Thread]::CurrentThread.GetApartmentState().ToString(); Recommendation = 'WPF requires STA.' })
     $checks.Add([pscustomobject]@{ Area = 'Runtime'; Check = 'TLS'; Status = [Net.ServicePointManager]::SecurityProtocol.ToString(); Recommendation = if (([Net.ServicePointManager]::SecurityProtocol -band [Net.SecurityProtocolType]::Tls12) -eq [Net.SecurityProtocolType]::Tls12) { 'OK' } else { 'Enable TLS 1.2 before PSGallery operations.' } })
 
@@ -317,7 +349,7 @@ function Invoke-HealthCheck {
         $checks.Add([pscustomobject]@{ Area = 'Path'; Check = $pathInfo.Name; Status = if ($exists) { 'OK' } else { 'Missing' }; Recommendation = $pathInfo.Path })
     }
 
-    foreach ($jsonFile in @('appsettings.json', 'connections.json', 'reports.json')) {
+    foreach ($jsonFile in @('appsettings.json', 'connections.json', 'reports.json', 'planned-reports.json')) {
         $path = Join-Path $script:RootPath "Config\$jsonFile"
         try {
             Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json | Out-Null
@@ -331,6 +363,7 @@ function Invoke-HealthCheck {
     $implemented = @($script:ReportCatalog | Where-Object { $_.Implemented -eq $true }).Count
     $planned = @($script:ReportCatalog | Where-Object { $_.Implemented -ne $true }).Count
     $checks.Add([pscustomobject]@{ Area = 'Catalog'; Check = 'Reports'; Status = "$($script:ReportCatalog.Count) total"; Recommendation = "$implemented implemented, $planned planned." })
+    $checks.Add([pscustomobject]@{ Area = 'Catalog'; Check = 'Planned report configuration'; Status = if ($script:PlannedReportSettings.ShowPlannedReports) { 'Visible' } else { 'Hidden' }; Recommendation = 'Edit Config\planned-reports.json to show, hide or annotate planned reports.' })
 
     $missingFunctions = @($script:ReportCatalog | Where-Object { $_.Implemented -eq $true } | Where-Object { -not (Get-Command -Name $_.Function -ErrorAction SilentlyContinue) })
     $checks.Add([pscustomobject]@{ Area = 'Catalog'; Check = 'Implemented functions'; Status = if ($missingFunctions.Count -eq 0) { 'OK' } else { 'Missing functions' }; Recommendation = if ($missingFunctions.Count -eq 0) { 'All implemented reports resolve to a function.' } else { ($missingFunctions.Function -join ', ') } })
@@ -418,18 +451,129 @@ function New-ReportListItem {
         $Report.ToString()
     }
 
-    $item.Content = $displayLabel
+    $risk = if ($Report.PSObject.Properties.Name -contains 'RiskLevel' -and $Report.RiskLevel) { $Report.RiskLevel } else { 'Low' }
+    $priority = if ($Report.PSObject.Properties.Name -contains 'Priority' -and $Report.Priority) { $Report.Priority } else { 'Low' }
+    $item.Content = '[{0}/{1}] {2}' -f $risk, $priority, $displayLabel
     $item.Tag = $Report
     $item.Padding = [System.Windows.Thickness]::new(8, 5, 8, 5)
+    if ($risk -eq 'Critical') {
+        $item.FontWeight = [System.Windows.FontWeights]::SemiBold
+        $item.Foreground = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(192, 57, 43))
+    }
     if ($Report.Implemented -ne $true) {
-        $item.Foreground = [System.Windows.Media.Brushes]::Gray
-        $item.ToolTip = 'Planned report. Not executable yet.'
+        if ($risk -ne 'Critical') {
+            $item.Foreground = [System.Windows.Media.Brushes]::Gray
+        }
+        $item.ToolTip = 'Planned report. Not executable yet. Risk={0}; Priority={1}; Note={2}' -f $risk, $priority, $Report.Note
     }
     else {
-        $item.ToolTip = '{0} | {1}' -f $Report.Category, $Report.Id
+        $item.ToolTip = '{0} | {1} | Risk={2}; Priority={3}; Note={4}' -f $Report.Category, $Report.Id, $risk, $priority, $Report.Note
     }
 
     $item
+}
+
+function Get-ComboBoxContent {
+    param([AllowNull()][object]$ComboBox)
+
+    if (-not $ComboBox -or -not $ComboBox.SelectedItem) {
+        return ''
+    }
+
+    if ($ComboBox.SelectedItem.PSObject.Properties.Name -contains 'Content') {
+        return $ComboBox.SelectedItem.Content.ToString()
+    }
+
+    $ComboBox.SelectedItem.ToString()
+}
+
+function Save-PlannedReportVisibility {
+    param([Parameter(Mandatory)][bool]$Visible)
+
+    $script:PlannedReportSettings.ShowPlannedReports = $Visible
+    $path = Join-Path $script:RootPath 'Config\planned-reports.json'
+    $script:PlannedReportSettings | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $path -Encoding UTF8
+}
+
+function Initialize-PlannedReportToggle {
+    $visible = if ($script:PlannedReportSettings.PSObject.Properties.Name -contains 'ShowPlannedReports') {
+        [bool]$script:PlannedReportSettings.ShowPlannedReports
+    }
+    else {
+        $true
+    }
+
+    $controls.ShowPlannedReportsCheckBox.IsChecked = $visible
+}
+
+function Test-HIRReportCanRun {
+    param([AllowNull()][object]$Report)
+
+    if (-not $Report) {
+        return $false
+    }
+
+    if ($Report.Implemented -eq $true) {
+        return $true
+    }
+
+    $allowPlanned = if ($script:PlannedReportSettings.PSObject.Properties.Name -contains 'AllowRunPlannedReports') {
+        [bool]$script:PlannedReportSettings.AllowRunPlannedReports
+    }
+    else {
+        $false
+    }
+
+    if (-not $allowPlanned) {
+        return $false
+    }
+
+    [bool](Get-Command -Name $Report.Function -ErrorAction SilentlyContinue)
+}
+
+function Get-FilteredReports {
+    param(
+        [AllowNull()]
+        [object]$Reports
+    )
+
+    $items = @(Get-FlatReportItems -InputObject $Reports)
+    $search = if ($controls.ReportSearchBox -and $null -ne $controls.ReportSearchBox.Text) { $controls.ReportSearchBox.Text.Trim() } else { '' }
+    $statusFilter = Get-ComboBoxContent -ComboBox $controls.ReportStatusFilter
+    $riskFilter = Get-ComboBoxContent -ComboBox $controls.ReportRiskFilter
+    $showPlanned = [bool]$controls.ShowPlannedReportsCheckBox.IsChecked
+
+    if (-not $showPlanned) {
+        $items = @($items | Where-Object { $_.Implemented -eq $true })
+    }
+
+    if ($statusFilter -eq 'Implemented') {
+        $items = @($items | Where-Object { $_.Implemented -eq $true })
+    }
+    elseif ($statusFilter -eq 'Planned') {
+        $items = @($items | Where-Object { $_.Implemented -ne $true })
+    }
+
+    if ($riskFilter -and $riskFilter -ne 'All risks') {
+        $items = @($items | Where-Object { $_.PSObject.Properties.Name -contains 'RiskLevel' -and $_.RiskLevel -eq $riskFilter })
+    }
+
+    if ($search) {
+        $items = @($items | Where-Object {
+            $haystack = @(
+                $_.Id
+                $_.DisplayName
+                $_.Category
+                $_.Function
+                if ($_.PSObject.Properties.Name -contains 'RiskLevel') { $_.RiskLevel }
+                if ($_.PSObject.Properties.Name -contains 'Priority') { $_.Priority }
+                if ($_.PSObject.Properties.Name -contains 'Note') { $_.Note }
+            ) -join ' '
+            $haystack.IndexOf($search, [System.StringComparison]::OrdinalIgnoreCase) -ge 0
+        })
+    }
+
+    $items
 }
 
 function Set-ReportList {
@@ -446,10 +590,32 @@ function Set-ReportList {
     }
 
     if ($controls.ReportsList.Items.Count -gt 0) {
-        $controls.ReportsList.SelectedIndex = 0
+        $implementedIndex = -1
+        for ($index = 0; $index -lt $controls.ReportsList.Items.Count; $index++) {
+            $item = $controls.ReportsList.Items[$index]
+            if ($item.Tag -and $item.Tag.Implemented -eq $true) {
+                $implementedIndex = $index
+                break
+            }
+        }
+        $controls.ReportsList.SelectedIndex = if ($implementedIndex -ge 0) { $implementedIndex } else { 0 }
     }
     else {
         $controls.ReportsList.SelectedIndex = -1
+    }
+}
+
+function Update-ReportActionState {
+    $selectedItem = $controls.ReportsList.SelectedItem
+    $selectedReport = if ($selectedItem -and $selectedItem.Tag) { $selectedItem.Tag } else { $null }
+    $selectedImplemented = Test-HIRReportCanRun -Report $selectedReport
+
+    if (-not $script:IsBusy) {
+        $controls.RunReportButton.IsEnabled = $selectedImplemented
+    }
+
+    if ($selectedReport -and $selectedReport.Implemented -ne $true) {
+        $controls.LastRunText.Text = 'Selected report is planned and not executable yet.'
     }
 }
 
@@ -552,6 +718,7 @@ function Get-DashboardMenuSlices {
 
     $sections = @(
         'Active Directory',
+        'Executive Summary',
         'Entra ID',
         'Exchange Online',
         'Hybrid Reports',
@@ -595,6 +762,8 @@ function Update-SectionOverview {
     $reports = @($Reports | Where-Object { $null -ne $_ -and $_.PSObject.Properties.Name -contains 'Id' })
     $implemented = @($reports | Where-Object { $_.Implemented -eq $true }).Count
     $planned = @($reports | Where-Object { $_.Implemented -ne $true }).Count
+    $critical = @($reports | Where-Object { $_.PSObject.Properties.Name -contains 'RiskLevel' -and $_.RiskLevel -eq 'Critical' }).Count
+    $high = @($reports | Where-Object { $_.PSObject.Properties.Name -contains 'RiskLevel' -and $_.RiskLevel -eq 'High' }).Count
     $total = $reports.Count
 
     $controls.PieCanvas.Children.Clear()
@@ -631,7 +800,7 @@ function Update-SectionOverview {
             $startAngle += $sweep
         }
 
-        $controls.SectionMetricsText.Text = "Dashboard root menus`nMenus: $($rootSlices.Count)`nReports: $total`nImplemented: $implemented`nPlanned: $planned"
+        $controls.SectionMetricsText.Text = "Dashboard root menus`nMenus: $($rootSlices.Count)`nReports: $total`nImplemented: $implemented`nPlanned: $planned`nCritical/High: $critical/$high"
         $controls.SectionActionsText.Text = "Click a pie slice or legend row to open that menu.`nUse the left navigation for the same roots."
         return
     }
@@ -679,7 +848,7 @@ function Update-SectionOverview {
         default { 'Read-only reporting catalog' }
     }
 
-    $controls.SectionMetricsText.Text = "Section: $Section`nReports: $total`nImplemented: $implemented`nPlanned: $planned`nStatus: $connectionHint"
+    $controls.SectionMetricsText.Text = "Section: $Section`nReports: $total`nImplemented: $implemented`nPlanned: $planned`nCritical/High: $critical/$high`nStatus: $connectionHint"
     $controls.SectionActionsText.Text = Get-SectionManagementOptions -Section $Section
 }
 
@@ -710,6 +879,9 @@ function Get-SectionManagementOptions {
         }
         'Debug / Health' {
             "Suggestions:`n- Run Health Check after module installs`n- Open Logs after any error`n- Validate reports.json after adding reports`n- Confirm TLS 1.2 and PSGallery access"
+        }
+        'Executive Summary' {
+            "Options:`n- Filter Critical/High risks`n- Track planned executive reports`n- Use exports for evidence`n- Planned: HTML summary, comparisons and run history"
         }
         default {
             "Options:`n- Select a section`n- Connect required services`n- Run read-only reports`n- Export evidence"
@@ -859,7 +1031,7 @@ function Invoke-InstallWithProgress {
         Set-BusyState -Busy $false
         Add-UiLog "INSTALL ERROR: failed to start installation job: $($_.Exception.Message)"
         Write-HIRLog -Module GUI -Action InstallModule -Level ERROR -Message "Failed to start installation job: $($_.Exception.Message)"
-        [System.Windows.MessageBox]::Show($_.Exception.Message, 'Installation job error', 'OK', 'Error') | Out-Null
+        Show-HIRMessageBox -Message $_.Exception.Message -Title 'Installation job error' -Image Error | Out-Null
         return $false
     }
 
@@ -994,11 +1166,11 @@ function Invoke-InstallWithProgress {
     }
 
     if ($installState.Success) {
-        [System.Windows.MessageBox]::Show("$FriendlyName installed successfully.", 'Installation completed', 'OK', 'Information') | Out-Null
+        Show-HIRMessageBox -Message "$FriendlyName installed successfully." -Title 'Installation completed' -Image Information | Out-Null
         return $true
     }
 
-    [System.Windows.MessageBox]::Show($installState.Message, 'Installation error', 'OK', 'Error') | Out-Null
+    Show-HIRMessageBox -Message $installState.Message -Title 'Installation error' -Image Error | Out-Null
     return $false
 }
 
@@ -1038,7 +1210,7 @@ Administrative rights may be required for Windows capabilities.
 Do you want $($script:AppSettings.ApplicationName) to install it now?
 "@
 
-    $answer = [System.Windows.MessageBox]::Show($message, 'Install required module', 'YesNo', 'Question')
+    $answer = Show-HIRMessageBox -Message $message -Title 'Install required module' -Button YesNo -Image Question
     if ($answer -ne [System.Windows.MessageBoxResult]::Yes) {
         Add-UiLog "Installation skipped for $FriendlyName."
         return $false
@@ -1176,6 +1348,7 @@ function Get-SectionDescription {
         'Exports' { 'Run a report first, then export current results to CSV, Excel or HTML in the Reports folder.' }
         'Settings' { 'Configuration is currently file based. Edit Config\\connections.json and Config\\appsettings.json as needed.' }
         'Debug / Health' { 'Local diagnostics, dependency checks, configuration validation and troubleshooting shortcuts.' }
+        'Executive Summary' { 'High-level audit roadmap, planned risk scoring, run history and executive reporting.' }
         default { 'Select a report, connect to the required service, then run and export the results.' }
     }
 }
@@ -1190,8 +1363,11 @@ function Get-ReportsForSection {
     $selectedReports = if ($Section -eq 'Dashboard') {
         $script:ReportCatalog | Sort-Object Category, DisplayName
     }
+    elseif ($Section -eq 'Executive Summary') {
+        $script:ReportCatalog | Where-Object { $_.Category -eq 'Executive Summary' -or $_.RiskLevel -in @('Critical', 'High') } | Sort-Object RiskLevel, Priority, Category, DisplayName
+    }
     elseif ($Section -eq 'Exports') {
-        $script:ReportCatalog | Where-Object { $_.Implemented -eq $true } | Sort-Object Category, DisplayName
+        $script:ReportCatalog | Where-Object { $_.Implemented -eq $true -or $_.Category -eq 'Exports' } | Sort-Object Category, DisplayName
     }
     else {
         $script:ReportCatalog | Where-Object { $_.Category -eq $Section } | Sort-Object DisplayName
@@ -1212,21 +1388,23 @@ function Update-DependencySummary {
 
 function Update-NavigationView {
     $section = Get-SelectedNavigationName
-    $reports = @(Get-FlatReportItems -InputObject (Get-ReportsForSection -Section $section))
+    $rawReports = @(Get-FlatReportItems -InputObject (Get-ReportsForSection -Section $section))
+    $reports = @(Get-FilteredReports -Reports $rawReports)
     $sectionChanged = $script:LastNavigationSection -ne $section
     $script:LastNavigationSection = $section
 
     $controls.SectionTitleText.Text = $section
     $controls.SectionDescriptionText.Text = Get-SectionDescription -Section $section
-    $controls.ReportsGroup.Header = if ($reports.Count -gt 0) { "Reports ($($reports.Count))" } else { 'Reports' }
+    $controls.ReportsGroup.Header = if ($rawReports.Count -gt 0) { "Reports ($($reports.Count)/$($rawReports.Count))" } else { 'Reports' }
     Set-ReportList -Reports $reports
     Update-SectionOverview -Section $section -Reports $reports
 
-    $hasReports = $reports.Count -gt 0
-    $controls.RunReportButton.IsEnabled = $hasReports
+    $hasImplementedReports = @($reports | Where-Object { Test-HIRReportCanRun -Report $_ }).Count -gt 0
+    $controls.RunMenuReportsButton.IsEnabled = $hasImplementedReports
     $controls.ExportCsvButton.IsEnabled = ($script:CurrentResults.Count -gt 0)
     $controls.ExportExcelButton.IsEnabled = ($script:CurrentResults.Count -gt 0)
     $controls.ExportHtmlButton.IsEnabled = ($script:CurrentResults.Count -gt 0)
+    $controls.OpenLastExportButton.IsEnabled = [bool]($script:LastExportPath -and (Test-Path -LiteralPath $script:LastExportPath))
 
     if ($sectionChanged) {
         Add-UiLog "Navigation: $section"
@@ -1234,6 +1412,66 @@ function Update-NavigationView {
     }
 
     Update-DependencySummary
+    Update-ReportActionState
+}
+
+function Invoke-VisibleMenuReports {
+    if ($script:IsBusy) {
+        Add-UiLog 'Menu report run ignored because another operation is already running.'
+        return
+    }
+
+    $selectedReports = @(
+        foreach ($item in $controls.ReportsList.Items) {
+            if ($item.Tag -and (Test-HIRReportCanRun -Report $item.Tag)) {
+                $item.Tag
+            }
+        }
+    )
+
+    if ($selectedReports.Count -eq 0) {
+        Show-HIRMessageBox -Message 'No executable report is visible with the current menu/filter selection.' -Image Information | Out-Null
+        return
+    }
+
+    $answer = Show-HIRMessageBox -Message "Run $($selectedReports.Count) executable reports visible in this menu?`n`nThe result grid will show an execution summary." -Title 'Run menu reports' -Button YesNo -Image Question
+    if ($answer -ne [System.Windows.MessageBoxResult]::Yes) {
+        return
+    }
+
+    $summary = New-Object System.Collections.Generic.List[object]
+    try {
+        Set-BusyState -Busy $true -Message 'Running visible menu reports'
+        foreach ($report in $selectedReports) {
+            $started = Get-Date
+            Add-UiLog "Running menu report: $($report.DisplayName)"
+            try {
+                if (-not (Ensure-ReportDependencies -Report $report)) {
+                    $summary.Add([pscustomobject]@{ Report = $report.DisplayName; Status = 'Skipped'; Count = 0; DurationSeconds = 0; Risk = $report.RiskLevel; Note = 'Dependency missing or installation cancelled.' }) | Out-Null
+                    continue
+                }
+
+                $command = Get-Command -Name $report.Function -ErrorAction Stop
+                $params = @{}
+                if ($command.Parameters.ContainsKey('SearchBase') -and $script:Connections.ActiveDirectory.SearchBase) { $params.SearchBase = $script:Connections.ActiveDirectory.SearchBase }
+                if ($command.Parameters.ContainsKey('Server') -and $script:Connections.ActiveDirectory.Server) { $params.Server = $script:Connections.ActiveDirectory.Server }
+                if ($command.Parameters.ContainsKey('Days') -and $script:AppSettings.PSObject.Properties.Name -contains 'DefaultInactiveDays') { $params.Days = [int]$script:AppSettings.DefaultInactiveDays }
+
+                $results = @(& $command @params)
+                $summary.Add([pscustomobject]@{ Report = $report.DisplayName; Status = 'Completed'; Count = $results.Count; DurationSeconds = [int]((Get-Date) - $started).TotalSeconds; Risk = $report.RiskLevel; Note = $report.Note }) | Out-Null
+            }
+            catch {
+                $summary.Add([pscustomobject]@{ Report = $report.DisplayName; Status = 'Error'; Count = 0; DurationSeconds = [int]((Get-Date) - $started).TotalSeconds; Risk = $report.RiskLevel; Note = $_.Exception.Message }) | Out-Null
+                Write-HIRLog -Module GUI -Action RunMenuReports -Level ERROR -Message "$($report.DisplayName): $($_.Exception.Message)"
+            }
+        }
+
+        Set-Results -Data @($summary) -ReportName ('Menu Reports Summary - {0}' -f (Get-SelectedNavigationName))
+        Add-UiLog "Menu report run completed. Reports: $($summary.Count)"
+    }
+    finally {
+        Set-BusyState -Busy $false
+    }
 }
 
 function Invoke-SelectedReport {
@@ -1245,22 +1483,17 @@ function Invoke-SelectedReport {
     $selectedItem = $controls.ReportsList.SelectedItem
     $selectedReport = if ($selectedItem -and $selectedItem.Tag) { $selectedItem.Tag } else { $null }
     if (-not $selectedReport) {
-        [System.Windows.MessageBox]::Show('Select a report first.', $script:AppSettings.ApplicationName, 'OK', 'Information') | Out-Null
+        Show-HIRMessageBox -Message 'Select a report first.' -Image Information | Out-Null
         return
     }
 
-    if ($selectedReport.Implemented -ne $true) {
-        [System.Windows.MessageBox]::Show('This report is planned but not implemented yet.', $script:AppSettings.ApplicationName, 'OK', 'Information') | Out-Null
+    if (-not (Test-HIRReportCanRun -Report $selectedReport)) {
+        Show-HIRMessageBox -Message 'This report is planned but not implemented yet.' -Image Information | Out-Null
         return
     }
 
     if (-not (Get-Command -Name $selectedReport.Function -ErrorAction SilentlyContinue)) {
-        [System.Windows.MessageBox]::Show(
-            "The selected report function is not implemented yet:`n$($selectedReport.Function)",
-            'Report not available',
-            'OK',
-            'Information'
-        ) | Out-Null
+        Show-HIRMessageBox -Message "The selected report function is not implemented yet:`n$($selectedReport.Function)" -Title 'Report not available' -Image Information | Out-Null
         return
     }
 
@@ -1295,7 +1528,7 @@ function Invoke-SelectedReport {
     catch {
         Add-UiLog "ERROR: $($_.Exception.Message)"
         Write-HIRLog -Module GUI -Action RunReport -Level ERROR -Message $_.Exception.Message
-        [System.Windows.MessageBox]::Show($_.Exception.Message, 'Report error', 'OK', 'Error') | Out-Null
+        Show-HIRMessageBox -Message $_.Exception.Message -Title 'Report error' -Image Error | Out-Null
     }
     finally {
         Set-BusyState -Busy $false
@@ -1315,7 +1548,7 @@ function Export-CurrentReport {
     }
 
     if (-not $script:CurrentReportName) {
-        [System.Windows.MessageBox]::Show('Run a report before exporting.', $script:AppSettings.ApplicationName, 'OK', 'Information') | Out-Null
+        Show-HIRMessageBox -Message 'Run a report before exporting.' -Image Information | Out-Null
         return
     }
 
@@ -1339,12 +1572,14 @@ function Export-CurrentReport {
         }
 
         Add-UiLog "Export $Format completed: $path"
-        [System.Windows.MessageBox]::Show("Export completed:`n$path", 'Export completed', 'OK', 'Information') | Out-Null
+        $script:LastExportPath = $path
+        $controls.OpenLastExportButton.IsEnabled = $true
+        Show-HIRMessageBox -Message "Export completed:`n$path" -Title 'Export completed' -Image Information | Out-Null
     }
     catch {
         Add-UiLog "ERROR: $($_.Exception.Message)"
         Write-HIRLog -Module GUI -Action Export -Level ERROR -Message $_.Exception.Message
-        [System.Windows.MessageBox]::Show($_.Exception.Message, 'Export error', 'OK', 'Error') | Out-Null
+        Show-HIRMessageBox -Message $_.Exception.Message -Title 'Export error' -Image Error | Out-Null
     }
     finally {
         Set-BusyState -Busy $false
@@ -1352,8 +1587,40 @@ function Export-CurrentReport {
 }
 
 $controls.NavigationList.Add_SelectionChanged({ Update-NavigationView })
+$controls.ReportsList.Add_SelectionChanged({ Update-ReportActionState })
+$controls.ReportSearchBox.Add_TextChanged({ Update-NavigationView })
+$controls.ReportStatusFilter.Add_SelectionChanged({ Update-NavigationView })
+$controls.ReportRiskFilter.Add_SelectionChanged({ Update-NavigationView })
+$controls.ShowPlannedReportsCheckBox.Add_Checked({
+    Save-PlannedReportVisibility -Visible $true
+    Add-UiLog 'Planned reports are now visible.'
+    Update-NavigationView
+})
+$controls.ShowPlannedReportsCheckBox.Add_Unchecked({
+    Save-PlannedReportVisibility -Visible $false
+    if ((Get-ComboBoxContent -ComboBox $controls.ReportStatusFilter) -eq 'Planned') {
+        $controls.ReportStatusFilter.SelectedIndex = 0
+    }
+    Add-UiLog 'Planned reports are now hidden.'
+    Update-NavigationView
+})
 $window.Add_SizeChanged({ Update-ResponsiveLayout })
+$window.Dispatcher.Add_UnhandledException({
+    param($sender, $eventArgs)
+
+    $message = if ($eventArgs.Exception) { $eventArgs.Exception.Message } else { 'Unhandled WPF dispatcher error.' }
+    Add-UiLog "ERROR: $message"
+    Write-HIRLog -Module GUI -Action DispatcherUnhandledException -Level ERROR -Message $message
+    try {
+        Show-HIRMessageBox -Message $message -Title 'Application error' -Image Error | Out-Null
+    }
+    catch {
+        # Avoid recursive dispatcher failures if the dialog subsystem is involved.
+    }
+    $eventArgs.Handled = $true
+})
 Initialize-ReportCatalog
+Initialize-PlannedReportToggle
 Update-ResponsiveLayout
 Update-NavigationView
 
@@ -1374,7 +1641,7 @@ $controls.ConnectADButton.Add_Click({
     catch {
         $controls.ADStatusText.Text = 'AD: Error'
         Add-UiLog "AD ERROR: $($_.Exception.Message)"
-        [System.Windows.MessageBox]::Show($_.Exception.Message, 'AD connection error', 'OK', 'Error') | Out-Null
+        Show-HIRMessageBox -Message $_.Exception.Message -Title 'AD connection error' -Image Error | Out-Null
     }
     finally {
         Set-BusyState -Busy $false
@@ -1398,7 +1665,7 @@ $controls.ConnectEntraButton.Add_Click({
     catch {
         $controls.EntraStatusText.Text = 'Entra ID: Error'
         Add-UiLog "ENTRA ERROR: $($_.Exception.Message)"
-        [System.Windows.MessageBox]::Show($_.Exception.Message, 'Entra connection error', 'OK', 'Error') | Out-Null
+        Show-HIRMessageBox -Message $_.Exception.Message -Title 'Entra connection error' -Image Error | Out-Null
     }
     finally {
         Set-BusyState -Busy $false
@@ -1422,7 +1689,7 @@ $controls.ConnectExchangeButton.Add_Click({
     catch {
         $controls.ExchangeStatusText.Text = 'Exchange Online: Error'
         Add-UiLog "EXCHANGE ERROR: $($_.Exception.Message)"
-        [System.Windows.MessageBox]::Show($_.Exception.Message, 'Exchange connection error', 'OK', 'Error') | Out-Null
+        Show-HIRMessageBox -Message $_.Exception.Message -Title 'Exchange connection error' -Image Error | Out-Null
     }
     finally {
         Set-BusyState -Busy $false
@@ -1430,6 +1697,7 @@ $controls.ConnectExchangeButton.Add_Click({
 })
 
 $controls.RunReportButton.Add_Click({ Invoke-SelectedReport })
+$controls.RunMenuReportsButton.Add_Click({ Invoke-VisibleMenuReports })
 $controls.ExportCsvButton.Add_Click({ Export-CurrentReport -Format Csv })
 $controls.ExportExcelButton.Add_Click({ Export-CurrentReport -Format Excel })
 $controls.ExportHtmlButton.Add_Click({ Export-CurrentReport -Format Html })
@@ -1438,6 +1706,15 @@ $controls.ClearResultsButton.Add_Click({
     Add-UiLog 'Results cleared.'
 })
 $controls.OpenReportsButton.Add_Click({ Open-HIRFolder -RelativePath 'Reports' })
+$controls.OpenLastExportButton.Add_Click({
+    if ($script:LastExportPath -and (Test-Path -LiteralPath $script:LastExportPath)) {
+        Start-Process -FilePath $script:LastExportPath
+        Add-UiLog "Opened last export: $script:LastExportPath"
+    }
+    else {
+        Show-HIRMessageBox -Message 'No export has been generated in this session yet.' -Image Information | Out-Null
+    }
+})
 $controls.OpenLogsButton.Add_Click({ Open-HIRFolder -RelativePath 'Logs' })
 $controls.HealthCheckButton.Add_Click({
     param($sender, $eventArgs)
@@ -1462,7 +1739,7 @@ $controls.HealthCheckButton.Add_Click({
             Status = 'Error'
             Recommendation = $message
         })
-        [System.Windows.MessageBox]::Show($message, 'Health check error', 'OK', 'Error') | Out-Null
+        Show-HIRMessageBox -Message $message -Title 'Health check error' -Image Error | Out-Null
     }
     finally {
         Set-BusyState -Busy $false
@@ -1473,12 +1750,7 @@ $window.Add_Closing({
     param($sender, $eventArgs)
 
     if ($script:IsBusy) {
-        $answer = [System.Windows.MessageBox]::Show(
-            'An operation is still running. Closing now can interrupt the current action. Do you want to close anyway?',
-            'Operation in progress',
-            'YesNo',
-            'Warning'
-        )
+        $answer = Show-HIRMessageBox -Message 'An operation is still running. Closing now can interrupt the current action. Do you want to close anyway?' -Title 'Operation in progress' -Button YesNo -Image Warning
 
         if ($answer -ne [System.Windows.MessageBoxResult]::Yes) {
             $eventArgs.Cancel = $true

@@ -40,6 +40,31 @@ function Test-HIRModuleInstalled {
     [bool](Get-Module -ListAvailable -Name $Name)
 }
 
+function Get-HIRObjectPropertyValue {
+    [CmdletBinding()]
+    param(
+        [AllowNull()]
+        [object]$InputObject,
+
+        [Parameter(Mandatory)]
+        [string]$Name,
+
+        [AllowNull()]
+        [object]$Default = $null
+    )
+
+    if ($null -eq $InputObject) {
+        return $Default
+    }
+
+    $property = $InputObject.PSObject.Properties[$Name]
+    if ($null -eq $property) {
+        return $Default
+    }
+
+    return $property.Value
+}
+
 function Install-HIRPowerShellGalleryModule {
     [CmdletBinding()]
     param(
@@ -203,4 +228,4 @@ function Copy-HIRExistingReportsToArchive {
     }
 }
 
-Export-ModuleMember -Function Enable-HIRTls12, Assert-HIRModule, Test-HIRModuleInstalled, Install-HIRPowerShellGalleryModule, Install-HIRActiveDirectoryTools, New-HIRSafeFileName, Copy-HIRExistingReportsToArchive
+Export-ModuleMember -Function Enable-HIRTls12, Assert-HIRModule, Test-HIRModuleInstalled, Get-HIRObjectPropertyValue, Install-HIRPowerShellGalleryModule, Install-HIRActiveDirectoryTools, New-HIRSafeFileName, Copy-HIRExistingReportsToArchive

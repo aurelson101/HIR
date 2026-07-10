@@ -10,7 +10,11 @@ function Get-HIRADInactiveComputers {
         $params = @{ ComputersOnly = $true; AccountInactive = $true; TimeSpan = (New-TimeSpan -Days $Days); ErrorAction = 'Stop' }
         if ($SearchBase) { $params.SearchBase = $SearchBase }
         if ($Server) { $params.Server = $Server }
-        Search-ADAccount @params | Select-Object Name, Enabled, LastLogonDate, DistinguishedName
+        Search-ADAccount @params | Select-Object `
+            @{Name = 'Name'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'Name' }},
+            @{Name = 'Enabled'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'Enabled' }},
+            @{Name = 'LastLogonDate'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'LastLogonDate' }},
+            @{Name = 'DistinguishedName'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'DistinguishedName' }}
     }
 }
 

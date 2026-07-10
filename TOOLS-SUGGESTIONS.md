@@ -8,7 +8,7 @@ Ce document liste les améliorations recommandées pour industrialiser **Hybrid 
 | --- | --- | --- |
 | Tests PowerShell | Ajouter des tests Pester pour les modules `Core`, `Export` et le mapping `Config/reports.json`. | Détecte les régressions avant livraison. |
 | Validation projet | Utiliser `Tools\Test-HIRProject.ps1` hors GUI avant livraison. | Permet une vérification rapide en console ou CI. |
-| Validation configuration | Ajouter un schéma JSON ou une validation stricte des clés attendues. | Évite les erreurs silencieuses après modification de `connections.json` ou `appsettings.json`. |
+| Validation configuration | Implémenté partiellement : Health Check et `Tools\Test-HIRProject.ps1` valident `connections.json`, `appsettings.json`, `reports.json` et `planned-reports.json`. | Évite les erreurs silencieuses après modification de la configuration. |
 | Logs | Ajouter une rotation automatique selon `Logging.RetainDays`. | Évite l'accumulation de logs sur le serveur. |
 | Exports | Ajouter une option d'ouverture automatique du fichier exporté après génération. | Améliore l'expérience opérateur. |
 
@@ -19,7 +19,7 @@ Ce document liste les améliorations recommandées pour industrialiser **Hybrid 
 | Signature | Signer les scripts PowerShell avec un certificat interne. | Compatible avec `AllSigned` et améliore la traçabilité. |
 | Packaging | Fournir une archive versionnée `Hybrid-Identity-Reporter-x.y.z.zip`. | Facilite le déploiement sur `DC05` ou autre serveur d'administration. |
 | Versioning | Afficher la version dans le README, l'interface et les exports. | Simplifie le support et les comparaisons de résultats. |
-| Raccourci | Créer un raccourci `.lnk` ou un lanceur `.cmd` vers `Start-Hybrid-Identity-Reporter.ps1`. | Réduit les erreurs de lancement. |
+| Raccourci | Implémenté : `launch.bat` lance `Start-Hybrid-Identity-Reporter.ps1` en STA depuis le dossier courant. | Réduit les erreurs de lancement. |
 | Dossier dédié | Exécuter depuis `C:\dev\repportAD` ou un chemin standard validé. | Stabilise les chemins d'exploitation. |
 
 ## Priorité 3 - Sécurité
@@ -36,10 +36,11 @@ Ce document liste les améliorations recommandées pour industrialiser **Hybrid 
 
 | Sujet | Recommandation | Bénéfice |
 | --- | --- | --- |
-| Recherche rapport | Ajouter une zone de recherche dans la liste des rapports. | Accès plus rapide quand le catalogue grossit. |
-| Filtre statut | Ajouter un filtre `Disponible / Prévu`. | Sépare mieux les rapports exploitables et la roadmap. |
+| Recherche rapport | Implémenté : zone de recherche dans la liste des rapports. | Accès plus rapide quand le catalogue grossit. |
+| Filtre statut/risque | Implémenté : filtres `Implemented / Planned` et `Critical / High / Medium / Low`. | Sépare mieux les rapports exploitables, la roadmap et les risques. |
+| Configuration planned | Implémenté : `Config\planned-reports.json` pilote la visibilité et les métadonnées des rapports prévus. | Permet d'adapter la roadmap sans modifier le catalogue principal. |
 | Détails rapport | Ajouter un panneau de détail avec prérequis et description du rapport sélectionné. | Aide l'utilisateur avant exécution. |
-| Export rapide | Ajouter un bouton `Open last export`. | Accès direct au dernier fichier généré. |
+| Export rapide | Implémenté : bouton `Open Last Export`. | Accès direct au dernier fichier généré. |
 | Thème | Conserver un thème clair/sobre adapté aux outils d'administration. | Lisibilité en exploitation. |
 
 ## Priorité 5 - CI/CD et qualité
@@ -86,10 +87,10 @@ $reader = New-Object System.Xml.XmlNodeReader $xaml
 | Rapport | Menu cible | Priorité |
 | --- | --- | --- |
 | Utilisateurs sans MFA | Security / IAM | Haute |
-| Permissions Full Access | Exchange Online | Haute |
-| Permissions Send As | Exchange Online | Haute |
-| Doublons UPN | Hybrid Reports | Moyenne |
-| Doublons proxyAddresses | Hybrid Reports | Moyenne |
+| Permissions Full Access | Exchange Online | Haute, planifié dans le catalogue |
+| Permissions Send As | Exchange Online | Haute, planifié dans le catalogue |
+| Doublons UPN | Hybrid Reports | Moyenne, planifié dans le catalogue |
+| Doublons proxyAddresses | Hybrid Reports | Moyenne, planifié dans le catalogue |
 | Comptes AD expirés | Active Directory | Moyenne |
 | Groupes sans owner | Entra ID | Moyenne |
 | Licences inutilisées | Entra ID | Moyenne |

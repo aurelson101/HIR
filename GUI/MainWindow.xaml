@@ -143,6 +143,7 @@
                     <TextBlock Text="Navigation" Foreground="#C9D8E5" FontWeight="SemiBold" Margin="3,0,3,12" />
                     <ListBox x:Name="NavigationList" Background="Transparent" BorderThickness="0" Foreground="White" SelectedIndex="0">
                         <ListBoxItem Content="Dashboard" Style="{StaticResource NavigationItemStyle}" />
+                        <ListBoxItem Content="Executive Summary" Style="{StaticResource NavigationItemStyle}" />
                         <ListBoxItem Content="Hybrid Reports" Style="{StaticResource NavigationItemStyle}" />
                         <ListBoxItem Content="Active Directory" Style="{StaticResource NavigationItemStyle}" />
                         <ListBoxItem Content="Entra ID" Style="{StaticResource NavigationItemStyle}" />
@@ -185,11 +186,13 @@
                     <Button x:Name="ConnectEntraButton" Content="Connect Entra ID" MinWidth="145" />
                     <Button x:Name="ConnectExchangeButton" Content="Connect Exchange Online" MinWidth="185" />
                     <Button x:Name="RunReportButton" Content="Run Report" FontWeight="SemiBold" Background="#D8ECFA" BorderBrush="#74A9D8" />
+                    <Button x:Name="RunMenuReportsButton" Content="Run Menu Reports" MinWidth="160" />
                     <Button x:Name="ExportCsvButton" Content="Export CSV" />
                     <Button x:Name="ExportExcelButton" Content="Export Excel" />
                     <Button x:Name="ExportHtmlButton" Content="Export HTML" />
                     <Button x:Name="ClearResultsButton" Content="Clear Results" />
                     <Button x:Name="OpenReportsButton" Content="Open Reports" />
+                    <Button x:Name="OpenLastExportButton" Content="Open Last Export" MinWidth="150" />
                     <Button x:Name="OpenLogsButton" Content="Open Logs" />
                     <Button x:Name="HealthCheckButton" Content="Run Health Check" MinWidth="150" />
                 </WrapPanel>
@@ -207,7 +210,46 @@
                     </Grid.RowDefinitions>
 
                     <GroupBox x:Name="ReportsGroup" Header="Reports" Grid.Column="0" Grid.Row="0" Margin="0,0,14,0">
-                        <ListBox x:Name="ReportsList" Padding="4" />
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <TextBox
+                                x:Name="ReportSearchBox"
+                                Grid.Row="0"
+                                MinHeight="30"
+                                Margin="0,0,0,8"
+                                Padding="8,5"
+                                BorderBrush="#C9D6E2"
+                                ToolTip="Search reports by name, id, risk, priority or note" />
+
+                            <WrapPanel Grid.Row="1" Margin="0,0,0,8">
+                                <ComboBox x:Name="ReportStatusFilter" Width="120" MinHeight="30" Margin="0,0,8,0" SelectedIndex="0">
+                                    <ComboBoxItem Content="All status" />
+                                    <ComboBoxItem Content="Implemented" />
+                                    <ComboBoxItem Content="Planned" />
+                                </ComboBox>
+                                <ComboBox x:Name="ReportRiskFilter" Width="120" MinHeight="30" Margin="0,0,8,0" SelectedIndex="0">
+                                    <ComboBoxItem Content="All risks" />
+                                    <ComboBoxItem Content="Critical" />
+                                    <ComboBoxItem Content="High" />
+                                    <ComboBoxItem Content="Medium" />
+                                    <ComboBoxItem Content="Low" />
+                                </ComboBox>
+                                <CheckBox
+                                    x:Name="ShowPlannedReportsCheckBox"
+                                    Content="Show planned"
+                                    MinHeight="30"
+                                    Margin="4,6,0,0"
+                                    VerticalAlignment="Center"
+                                    ToolTip="Show or hide planned reports in the catalog" />
+                            </WrapPanel>
+
+                            <ListBox x:Name="ReportsList" Grid.Row="2" Padding="4" />
+                        </Grid>
                     </GroupBox>
 
                     <GroupBox x:Name="OverviewGroup" Header="Section overview" Grid.Column="1" Grid.Row="0" Margin="0,0,14,0">

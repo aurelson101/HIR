@@ -24,7 +24,11 @@ function Get-HIRHybridDisabledADUsersVisibleInGAL {
 
         $recipientIndex = @{}
         foreach ($recipient in $recipients) {
-            foreach ($key in @($recipient.WindowsLiveID, $recipient.PrimarySmtpAddress, $recipient.UserPrincipalName)) {
+            foreach ($key in @(
+                Get-HIRObjectPropertyValue -InputObject $recipient -Name 'WindowsLiveID'
+                Get-HIRObjectPropertyValue -InputObject $recipient -Name 'PrimarySmtpAddress'
+                Get-HIRObjectPropertyValue -InputObject $recipient -Name 'UserPrincipalName'
+            )) {
                 if ($key) {
                     $normalized = $key.ToString().ToLowerInvariant()
                     if (-not $recipientIndex.ContainsKey($normalized)) {
@@ -35,7 +39,10 @@ function Get-HIRHybridDisabledADUsersVisibleInGAL {
         }
 
         foreach ($user in $disabledUsers) {
-            $lookupKeys = @($user.UserPrincipalName, $user.Mail) | Where-Object { $_ }
+            $lookupKeys = @(
+                Get-HIRObjectPropertyValue -InputObject $user -Name 'UserPrincipalName'
+                Get-HIRObjectPropertyValue -InputObject $user -Name 'Mail'
+            ) | Where-Object { $_ }
             $recipient = $null
             foreach ($key in $lookupKeys) {
                 $normalized = $key.ToString().ToLowerInvariant()
@@ -45,21 +52,21 @@ function Get-HIRHybridDisabledADUsersVisibleInGAL {
                 }
             }
 
-            $adHidden = [bool]$user.msExchHideFromAddressLists
-            $exchangeHidden = if ($recipient) { [bool]$recipient.HiddenFromAddressListsEnabled } else { $null }
+            $adHidden = [bool](Get-HIRObjectPropertyValue -InputObject $user -Name 'msExchHideFromAddressLists')
+            $exchangeHidden = if ($recipient) { [bool](Get-HIRObjectPropertyValue -InputObject $recipient -Name 'HiddenFromAddressListsEnabled') } else { $null }
             $issue = if ($recipient -and (-not $adHidden -or $exchangeHidden -eq $false)) { 'Disabled AD user visible or potentially visible in GAL' } else { '' }
             $action = if ($issue) { 'Review mailbox lifecycle. If appropriate, hide from address lists from on-prem AD attribute msExchHideFromAddressLists.' } else { 'No action detected by this report.' }
 
             [pscustomobject]@{
-                SamAccountName                 = $user.SamAccountName
-                DisplayName                    = $user.DisplayName
-                UserPrincipalName              = $user.UserPrincipalName
-                Mail                           = $user.Mail
-                EnabledAD                      = $user.Enabled
-                MailNickname                   = $user.mailNickname
-                HasProxyAddresses              = [bool]$user.proxyAddresses
+                SamAccountName                 = Get-HIRObjectPropertyValue -InputObject $user -Name 'SamAccountName'
+                DisplayName                    = Get-HIRObjectPropertyValue -InputObject $user -Name 'DisplayName'
+                UserPrincipalName              = Get-HIRObjectPropertyValue -InputObject $user -Name 'UserPrincipalName'
+                Mail                           = Get-HIRObjectPropertyValue -InputObject $user -Name 'Mail'
+                EnabledAD                      = Get-HIRObjectPropertyValue -InputObject $user -Name 'Enabled'
+                MailNickname                   = Get-HIRObjectPropertyValue -InputObject $user -Name 'mailNickname'
+                HasProxyAddresses              = [bool](Get-HIRObjectPropertyValue -InputObject $user -Name 'proxyAddresses')
                 ADHiddenFromAddressLists       = $adHidden
-                ExchangeRecipientType          = if ($recipient) { $recipient.RecipientTypeDetails } else { $null }
+                ExchangeRecipientType          = if ($recipient) { Get-HIRObjectPropertyValue -InputObject $recipient -Name 'RecipientTypeDetails' } else { $null }
                 ExchangeHiddenFromAddressLists = $exchangeHidden
                 IssueDetected                  = $issue
                 RecommendedAction              = $action
@@ -75,10 +82,15 @@ function Get-HIRHybridADUsersMissingMailNickname {
     Invoke-HIRSafeCommand -Module Hybrid -Action 'AD users missing mailNickname' -ScriptBlock {
         Assert-HIRModule -Name ActiveDirectory
         Import-Module ActiveDirectory -ErrorAction Stop
-        $params = @{ LDAPFilter = '(&(mail=*)(!(mailNickname=*)))'; Properties = @('mail', 'mailNickname'); ErrorAction = 'Stop' }
+        $params = @{ LDAPFilter = '(&(mail=*)(!(mailNickname=*)))'; Properties = @('mail', 'mailNickname', 'userPrincipalName'); ErrorAction = 'Stop' }
         if ($SearchBase) { $params.SearchBase = $SearchBase }
         if ($Server) { $params.Server = $Server }
-        Get-ADUser @params | Select-Object SamAccountName, DisplayName, UserPrincipalName, Mail, MailNickname
+        Get-ADUser @params | Select-Object `
+            @{Name = 'SamAccountName'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'SamAccountName' }},
+            @{Name = 'DisplayName'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'DisplayName' }},
+            @{Name = 'UserPrincipalName'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'UserPrincipalName' }},
+            @{Name = 'Mail'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'Mail' }},
+            @{Name = 'MailNickname'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'MailNickname' }}
     }
 }
 
@@ -89,10 +101,15 @@ function Get-HIRHybridADUsersMissingProxyAddresses {
     Invoke-HIRSafeCommand -Module Hybrid -Action 'AD users missing proxyAddresses' -ScriptBlock {
         Assert-HIRModule -Name ActiveDirectory
         Import-Module ActiveDirectory -ErrorAction Stop
-        $params = @{ LDAPFilter = '(&(mail=*)(!(proxyAddresses=*)))'; Properties = @('mail', 'proxyAddresses'); ErrorAction = 'Stop' }
+        $params = @{ LDAPFilter = '(&(mail=*)(!(proxyAddresses=*)))'; Properties = @('mail', 'proxyAddresses', 'userPrincipalName'); ErrorAction = 'Stop' }
         if ($SearchBase) { $params.SearchBase = $SearchBase }
         if ($Server) { $params.Server = $Server }
-        Get-ADUser @params | Select-Object SamAccountName, DisplayName, UserPrincipalName, Mail, @{Name = 'HasProxyAddresses'; Expression = { [bool]$_.proxyAddresses }}
+        Get-ADUser @params | Select-Object `
+            @{Name = 'SamAccountName'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'SamAccountName' }},
+            @{Name = 'DisplayName'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'DisplayName' }},
+            @{Name = 'UserPrincipalName'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'UserPrincipalName' }},
+            @{Name = 'Mail'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'Mail' }},
+            @{Name = 'HasProxyAddresses'; Expression = { [bool](Get-HIRObjectPropertyValue -InputObject $_ -Name 'proxyAddresses') }}
     }
 }
 
