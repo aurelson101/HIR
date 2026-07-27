@@ -223,9 +223,49 @@ function Copy-HIRExistingReportsToArchive {
 
     $pattern = '{0}-*.{1}' -f $SafeReportName, $Extension.TrimStart('.')
     Get-ChildItem -LiteralPath $reportDirectory -Filter $pattern -File -ErrorAction SilentlyContinue | ForEach-Object {
-        $archiveName = '{0}.archived-{1}{2}' -f [System.IO.Path]::GetFileNameWithoutExtension($_.Name), (Get-Date -Format 'yyyyMMdd-HHmmss'), $_.Extension
-        Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $archiveDirectory $archiveName) -Force
+        $archiveName = '{0}.archived-{1}{2}' -f [System.IO.Path]::GetFileNameWithoutExtension($_.Name), (Get-Date -Format 'yyyyMMdd-HHmmssfff'), $_.Extension
+        Move-Item -LiteralPath $_.FullName -Destination (Join-Path $archiveDirectory $archiveName) -Force
+    }
+    if ($Extension.TrimStart('.') -eq 'csv') {
+        Get-ChildItem -LiteralPath $reportDirectory -Filter "$SafeReportName-*.metadata.json" -File -ErrorAction SilentlyContinue | ForEach-Object {
+            $archiveName = '{0}.archived-{1}{2}' -f [System.IO.Path]::GetFileNameWithoutExtension($_.Name), (Get-Date -Format 'yyyyMMdd-HHmmssfff'), $_.Extension
+            Move-Item -LiteralPath $_.FullName -Destination (Join-Path $archiveDirectory $archiveName) -Force
+        }
     }
 }
 
-Export-ModuleMember -Function Enable-HIRTls12, Assert-HIRModule, Test-HIRModuleInstalled, Get-HIRObjectPropertyValue, Install-HIRPowerShellGalleryModule, Install-HIRActiveDirectoryTools, New-HIRSafeFileName, Copy-HIRExistingReportsToArchive
+function Remove-HIRExpiredFiles {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [ValidateRange(1, 3650)][int]$RetainDays
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) { return 0 }
+    $expired = @(Get-ChildItem -LiteralPath $Path -File -Recurse -ErrorAction SilentlyContinue |
+        Where-Object LastWriteTime -lt (Get-Date).AddDays(-$RetainDays))
+    foreach ($file in $expired) {
+        if ($PSCmdlet.ShouldProcess($file.FullName, 'Remove expired HIR file')) {
+            Remove-Item -LiteralPath $file.FullName -Force
+        }
+    }
+    return $expired.Count
+}
+
+function Protect-HIRReportsDirectory {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$RootPath)
+
+    if ($PSVersionTable.PSVersion.Major -ge 6 -and -not $IsWindows) { return $false }
+    $path = Join-Path $RootPath 'Reports'
+    if (-not (Test-Path -LiteralPath $path)) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
+    $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    $acl = Get-Acl -LiteralPath $path
+    $acl.SetAccessRuleProtection($true, $false)
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($identity, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
+    $acl.SetAccessRule($rule)
+    Set-Acl -LiteralPath $path -AclObject $acl
+    return $true
+}
+
+Export-ModuleMember -Function Enable-HIRTls12, Assert-HIRModule, Test-HIRModuleInstalled, Get-HIRObjectPropertyValue, Install-HIRPowerShellGalleryModule, Install-HIRActiveDirectoryTools, New-HIRSafeFileName, Copy-HIRExistingReportsToArchive, Remove-HIRExpiredFiles, Protect-HIRReportsDirectory

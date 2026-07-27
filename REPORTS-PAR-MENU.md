@@ -21,10 +21,10 @@ Ce document est genere a partir de Config/reports.json et liste les rapports dis
 
 | Rapport | Statut | Risque | Priorite | Note |
 | --- | --- | --- | --- | --- |
-| Compare Two Exports | Prevu | Low | Low | Planned comparison between two report exports. |
-| Executive Summary HTML | Prevu | Medium | Low | Planned high-level summary with scores and counters. |
-| Report Risk Score | Prevu | Medium | Low | Planned risk scoring view for prioritization. |
-| Run History | Prevu | Low | Low | Planned run history for monthly tracking. |
+| Compare Two Exports | Disponible | Low | Low | Compare the two latest completed snapshots for one report. |
+| Executive Summary HTML | Disponible | Medium | Low | Explainable high-level summary based on persisted runs. |
+| Report Risk Score | Disponible | Medium | Low | Findings multiplied by visible risk weights. |
+| Run History | Disponible | Low | Low | Persisted run manifests and snapshots for tracking. |
 
 ## Hybrid Reports
 
@@ -60,7 +60,7 @@ Ce document est genere a partir de Config/reports.json et liste les rapports dis
 | Disabled Entra Users | Disponible | Medium | Medium | Review disabled Entra users for lifecycle and licensing cleanup. |
 | Disabled Users With Licenses | Prevu | Medium | Medium | Planned cross-check between Disabled Entra Users and Licensed Users to identify wasted licenses. |
 | Entra Groups | Disponible | Medium | Medium | Inventory Entra groups, mail/security flags and group types. |
-| Entra Groups Without Owners | Prevu | Medium | Medium | Planned governance report for Entra groups without owners. |
+| Entra Groups Without Owners | Disponible | Medium | Medium | Find groups without an accountable owner. |
 | Guest Entra users | Disponible | Medium | Medium | Review external guest accounts and lifecycle state. |
 | Licensed Users | Disponible | Low | Low | Inventory licensed users and license count. |
 | Synced Users | Disponible | Low | Low | Inventory synchronized Entra users. |
@@ -71,12 +71,12 @@ Ce document est genere a partir de Config/reports.json et liste les rapports dis
 | Rapport | Statut | Risque | Priorite | Note |
 | --- | --- | --- | --- | --- |
 | External Mail Forwarding | Prevu | High | High | Planned refinement of Mailboxes with forwarding enabled, isolating external forwarding from internal forwarding. |
-| Full Access Mailbox Permissions | Prevu | High | High | Planned mailbox delegation review for Full Access permissions. |
+| Full Access Mailbox Permissions | Disponible | High | High | Review explicit Full Access delegations. |
 | Hidden From GAL | Disponible | Medium | Medium | Review recipients hidden from address lists. |
 | Hidden From GAL But Active | Prevu | Medium | Medium | Planned refinement of Hidden From GAL, focused on active recipients that may need policy review. |
 | Mailboxes with forwarding enabled | Disponible | High | High | Review mailbox forwarding and business justification. |
-| Send As Permissions | Prevu | High | High | Planned mailbox delegation review for Send As permissions. |
-| Send On Behalf Permissions | Prevu | High | High | Planned mailbox delegation review for Send on Behalf permissions. |
+| Send As Permissions | Disponible | High | High | Review explicit Send As delegations. |
+| Send On Behalf Permissions | Disponible | High | High | Review Send on Behalf delegations. |
 | Shared Mailboxes | Disponible | Medium | Medium | Inventory shared mailboxes for ownership review. |
 | Shared Mailboxes With Enabled Account | Prevu | Medium | Medium | Planned refinement of Shared Mailboxes, checking whether the backing sign-in account is enabled. |
 | User Mailboxes | Disponible | Low | Low | Inventory Exchange Online user mailboxes. |
@@ -85,7 +85,7 @@ Ce document est genere a partir de Config/reports.json et liste les rapports dis
 
 | Rapport | Statut | Risque | Priorite | Note |
 | --- | --- | --- | --- | --- |
-| Admin Accounts Password Never Expires | Prevu | Critical | High | Planned refinement of Password Never Expires, focused only on privileged AD accounts. |
+| Admin Accounts Password Never Expires | Disponible | Critical | High | Enabled adminCount accounts with non-expiring passwords. |
 | AdminCount = 1 Users | Disponible | High | High | Find accounts protected by AdminSDHolder history or privileged membership. |
 | Cloud-only Entra Admins | Prevu | High | Medium | Planned cross-check between Cloud-only Entra users and Entra admin role membership. |
 | Domain Admins Members | Disponible | Critical | High | Review recursive Domain Admins membership. |
@@ -94,13 +94,13 @@ Ce document est genere a partir de Config/reports.json et liste les rapports dis
 | Guest Users in Admin Roles | Prevu | Critical | Medium | Planned cross-check between Guest Entra users and Entra admin role membership. |
 | Password Never Expires | Disponible | High | High | Identify enabled accounts with passwords that never expire. |
 | Privileged Entra role risk view | Prevu | Critical | High | Planned risk view extending Entra Admin Role Members with critical role, guest account and cloud-only admin signals. |
-| Users Without MFA Methods | Prevu | Critical | High | Planned report for users without registered MFA methods. |
+| Users Without MFA Methods | Disponible | Critical | High | Graph authentication registration details without MFA registration. |
 
 ## Exports
 
 | Rapport | Statut | Risque | Priorite | Note |
 | --- | --- | --- | --- | --- |
-| Export JSON | Prevu | Low | Low | Planned JSON export for SIEM or automation integration. |
+| Export JSON | Disponible | Low | Low | Structured JSON export for SIEM or automation integration. |
 
 ## Settings
 
@@ -121,3 +121,4 @@ Ce document est genere a partir de Config/reports.json et liste les rapports dis
 | Dossiers projet | Disponible | Verifie les dossiers Config, Reports, Logs, Archive et Templates. |
 | Validation JSON | Disponible | Valide les fichiers de configuration JSON. |
 | Mapping catalogue / fonctions | Disponible | Verifie les doublons, les metadonnees et les fonctions associees aux rapports. |
+| Permissions par rapport | Disponible | Valide et affiche les droits minimaux, prerequis et sources. |

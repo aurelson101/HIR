@@ -70,4 +70,18 @@ function Get-HIREntraUsersWithoutLicense {
     }
 }
 
-Export-ModuleMember -Function Get-HIREntraSyncedUsers, Get-HIREntraCloudOnlyUsers, Get-HIREntraGuestUsers, Get-HIREntraDisabledUsers, Get-HIREntraLicensedUsers, Get-HIREntraUsersWithoutLicense
+function Get-HIREntraUsersWithoutMFAMethods {
+    [CmdletBinding()]
+    param()
+
+    Invoke-HIRSafeCommand -Module Entra -Action 'Users without MFA methods report' -ScriptBlock {
+        Import-Module Microsoft.Graph.Reports -ErrorAction Stop
+        Get-MgReportAuthenticationMethodUserRegistrationDetail -All -ErrorAction Stop |
+            Where-Object { $_.IsMfaRegistered -ne $true } |
+            Select-Object Id, UserDisplayName, UserPrincipalName, IsAdmin, IsMfaCapable, IsMfaRegistered,
+                @{Name = 'MethodsRegistered'; Expression = { @($_.MethodsRegistered) -join ';' }},
+                @{Name = 'RecommendedAction'; Expression = { 'Register an approved phishing-resistant MFA method where possible.' }}
+    }
+}
+
+Export-ModuleMember -Function Get-HIREntraSyncedUsers, Get-HIREntraCloudOnlyUsers, Get-HIREntraGuestUsers, Get-HIREntraDisabledUsers, Get-HIREntraLicensedUsers, Get-HIREntraUsersWithoutLicense, Get-HIREntraUsersWithoutMFAMethods

@@ -150,4 +150,24 @@ function Get-HIRADUsersWithoutManager {
     }
 }
 
-Export-ModuleMember -Function Get-HIRADDisabledUsers, Get-HIRADLockedUsers, Get-HIRADInactiveUsers, Get-HIRADPasswordNeverExpiresUsers, Get-HIRADAdminCountUsers, Get-HIRADUsersWithoutEmail, Get-HIRADUsersWithoutManager
+function Get-HIRADAdminPasswordNeverExpiresUsers {
+    [CmdletBinding()]
+    param([string]$SearchBase, [string]$Server)
+
+    Invoke-HIRSafeCommand -Module AD -Action 'Privileged accounts with non-expiring passwords' -ScriptBlock {
+        Assert-HIRModule -Name ActiveDirectory
+        Import-Module ActiveDirectory -ErrorAction Stop
+        $params = @{
+            LDAPFilter = '(&(adminCount=1)(userAccountControl:1.2.840.113556.1.4.803:=65536)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))'
+            Properties = @('adminCount', 'PasswordNeverExpires', 'mail', 'userPrincipalName', 'memberOf')
+            ErrorAction = 'Stop'
+        }
+        if ($SearchBase) { $params.SearchBase = $SearchBase }
+        if ($Server) { $params.Server = $Server }
+        Get-ADUser @params | Select-Object SamAccountName, DisplayName, UserPrincipalName, Mail, Enabled, PasswordNeverExpires,
+            @{Name = 'PrivilegedSignal'; Expression = { 'adminCount=1' }},
+            @{Name = 'MemberOf'; Expression = { @($_.MemberOf) -join ';' }}
+    }
+}
+
+Export-ModuleMember -Function Get-HIRADDisabledUsers, Get-HIRADLockedUsers, Get-HIRADInactiveUsers, Get-HIRADPasswordNeverExpiresUsers, Get-HIRADAdminCountUsers, Get-HIRADUsersWithoutEmail, Get-HIRADUsersWithoutManager, Get-HIRADAdminPasswordNeverExpiresUsers

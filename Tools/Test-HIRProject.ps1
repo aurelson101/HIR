@@ -55,7 +55,7 @@ function Test-HIRProject {
         Add-CheckResult -Results $results -Area 'PowerShell' -Check $file.FullName.Replace($resolvedRoot, '.').TrimStart('\') -Status $(if ($errors.Count -eq 0) { 'OK' } else { 'Error' }) -Details $(if ($errors.Count -eq 0) { 'Parsed successfully' } else { $errors[0].Message })
     }
 
-    foreach ($jsonFile in @('appsettings.json', 'connections.json', 'reports.json', 'planned-reports.json')) {
+    foreach ($jsonFile in @('appsettings.json', 'connections.json', 'reports.json', 'planned-reports.json', 'report-permissions.json')) {
         $path = Join-Path $resolvedRoot "Config\$jsonFile"
         try {
             Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json | Out-Null
@@ -74,7 +74,8 @@ function Test-HIRProject {
         Add-CheckResult -Results $results -Area 'WPF' -Check 'MainWindow.xaml' -Status 'OK' -Details 'XAML loaded successfully'
     }
     catch {
-        Add-CheckResult -Results $results -Area 'WPF' -Check 'MainWindow.xaml' -Status 'Error' -Details $_.Exception.Message
+        $platformIsWindows = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Windows)
+        Add-CheckResult -Results $results -Area 'WPF' -Check 'MainWindow.xaml' -Status $(if ($platformIsWindows) { 'Error' } else { 'Warning' }) -Details $(if ($platformIsWindows) { $_.Exception.Message } else { 'WPF is unavailable on this platform; Windows CI performs the authoritative XAML load test.' })
     }
 
     $moduleFiles = Get-ChildItem -LiteralPath (Join-Path $resolvedRoot 'Modules') -Recurse -Filter *.psm1 -File

@@ -29,6 +29,7 @@ $modulePaths = @(
     'Modules\Core\Logging.psm1',
     'Modules\Core\Config.psm1',
     'Modules\Core\Helpers.psm1',
+    'Modules\Core\History.psm1',
     'Modules\AD\ADConnection.psm1',
     'Modules\AD\ADUsers.psm1',
     'Modules\AD\ADGroups.psm1',
@@ -42,7 +43,8 @@ $modulePaths = @(
     'Modules\Hybrid\HybridReports.psm1',
     'Modules\Export\ExportCsv.psm1',
     'Modules\Export\ExportExcel.psm1',
-    'Modules\Export\ExportHtml.psm1'
+    'Modules\Export\ExportHtml.psm1',
+    'Modules\Export\ExportJson.psm1'
 )
 
 foreach ($relativePath in $modulePaths) {
@@ -58,12 +60,20 @@ catch {
     Write-HIRLog -Module Core -Action Startup -Level WARNING -Message $_.Exception.Message
 }
 $script:AppSettings = Get-HIRAppSettings -RootPath $script:RootPath
+$archiveRetainDays = if ($script:AppSettings.Exports.PSObject.Properties.Name -contains 'ArchiveRetainDays') { [int]$script:AppSettings.Exports.ArchiveRetainDays } else { 365 }
+Remove-HIRExpiredFiles -Path (Join-Path $script:RootPath 'Archive') -RetainDays $archiveRetainDays -Confirm:$false | Out-Null
+Remove-HIRExpiredFiles -Path (Join-Path $script:RootPath 'Logs') -RetainDays ([int]$script:AppSettings.Logging.RetainDays) -Confirm:$false | Out-Null
+if ($script:AppSettings.Exports.PSObject.Properties.Name -contains 'ProtectReportsWithUserAcl' -and $script:AppSettings.Exports.ProtectReportsWithUserAcl) {
+    Protect-HIRReportsDirectory -RootPath $script:RootPath | Out-Null
+}
 $script:Connections = Get-HIRConnections -RootPath $script:RootPath
 $script:PlannedReportSettings = Get-HIRPlannedReportSettings -RootPath $script:RootPath
 $script:ReportCatalog = @(Merge-HIRPlannedReportSettings -Reports @(Get-HIRReportCatalog -RootPath $script:RootPath) -Settings $script:PlannedReportSettings)
 $script:CurrentResults = @()
 $script:CurrentReportName = $null
+$script:CurrentReportId = $null
 $script:IsBusy = $false
+$script:ActiveReportPowerShell = $null
 $script:LastExportPath = $null
 $script:InstallTimeoutMinutes = if ($script:AppSettings.PSObject.Properties.Name -contains 'Runtime' -and $script:AppSettings.Runtime.PSObject.Properties.Name -contains 'InstallTimeoutMinutes') { [Math]::Max(1, [int]$script:AppSettings.Runtime.InstallTimeoutMinutes) } else { 30 }
 $script:MaxUiLogCharacters = if ($script:AppSettings.PSObject.Properties.Name -contains 'Runtime' -and $script:AppSettings.Runtime.PSObject.Properties.Name -contains 'MaxUiLogCharacters') { [Math]::Max(5000, [int]$script:AppSettings.Runtime.MaxUiLogCharacters) } else { 60000 }
@@ -90,7 +100,7 @@ function Get-HIRHealthCheckData {
     $checks += [pscustomobject]@{ Area = 'Runtime'; Check = 'STA Mode'; Status = [System.Threading.Thread]::CurrentThread.GetApartmentState().ToString(); Recommendation = 'WPF requires STA.' }
     $checks += [pscustomobject]@{ Area = 'Runtime'; Check = 'TLS'; Status = [Net.ServicePointManager]::SecurityProtocol.ToString(); Recommendation = if (([Net.ServicePointManager]::SecurityProtocol -band [Net.SecurityProtocolType]::Tls12) -eq [Net.SecurityProtocolType]::Tls12) { 'OK' } else { 'Enable TLS 1.2 before PSGallery operations.' } }
 
-    foreach ($moduleName in @('ActiveDirectory', 'Microsoft.Graph.Authentication', 'Microsoft.Graph.Users', 'Microsoft.Graph.Groups', 'Microsoft.Graph.Identity.DirectoryManagement', 'ExchangeOnlineManagement', 'ImportExcel')) {
+    foreach ($moduleName in @('ActiveDirectory', 'Microsoft.Graph.Authentication', 'Microsoft.Graph.Users', 'Microsoft.Graph.Groups', 'Microsoft.Graph.Reports', 'Microsoft.Graph.Identity.DirectoryManagement', 'ExchangeOnlineManagement', 'ImportExcel')) {
         $installed = Test-HIRModuleInstalled -Name $moduleName
         $checks += [pscustomobject]@{ Area = 'Module'; Check = $moduleName; Status = if ($installed) { 'Installed' } else { 'Missing' }; Recommendation = if ($installed) { 'OK' } else { 'Use the relevant Connect or Export button to install on demand.' } }
     }
@@ -100,7 +110,7 @@ function Get-HIRHealthCheckData {
         $checks += [pscustomobject]@{ Area = 'Path'; Check = $pathInfo.Name; Status = if ($exists) { 'OK' } else { 'Missing' }; Recommendation = $pathInfo.Path }
     }
 
-    foreach ($jsonFile in @('appsettings.json', 'connections.json', 'reports.json', 'planned-reports.json')) {
+    foreach ($jsonFile in @('appsettings.json', 'connections.json', 'reports.json', 'planned-reports.json', 'report-permissions.json')) {
         $path = Join-Path $script:RootPath "Config\$jsonFile"
         try {
             Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json | Out-Null
@@ -265,10 +275,12 @@ $controls = @{
     ConnectEntraButton  = Get-Control -Name ConnectEntraButton
     ConnectExchangeButton = Get-Control -Name ConnectExchangeButton
     RunReportButton     = Get-Control -Name RunReportButton
+    CancelReportButton  = Get-Control -Name CancelReportButton
     RunMenuReportsButton = Get-Control -Name RunMenuReportsButton
     ExportCsvButton     = Get-Control -Name ExportCsvButton
     ExportExcelButton   = Get-Control -Name ExportExcelButton
     ExportHtmlButton    = Get-Control -Name ExportHtmlButton
+    ExportJsonButton    = Get-Control -Name ExportJsonButton
     ClearResultsButton  = Get-Control -Name ClearResultsButton
     OpenReportsButton   = Get-Control -Name OpenReportsButton
     OpenLastExportButton = Get-Control -Name OpenLastExportButton
@@ -332,10 +344,13 @@ function Set-BusyState {
 
     $script:IsBusy = $Busy
     $isEnabled = -not $Busy
-    foreach ($buttonName in @('ConnectADButton', 'ConnectEntraButton', 'ConnectExchangeButton', 'RunReportButton', 'RunMenuReportsButton', 'ExportCsvButton', 'ExportExcelButton', 'ExportHtmlButton', 'ClearResultsButton', 'OpenReportsButton', 'OpenLastExportButton', 'OpenLogsButton', 'HealthCheckButton')) {
+    foreach ($buttonName in @('ConnectADButton', 'ConnectEntraButton', 'ConnectExchangeButton', 'RunReportButton', 'RunMenuReportsButton', 'ExportCsvButton', 'ExportExcelButton', 'ExportHtmlButton', 'ExportJsonButton', 'ClearResultsButton', 'OpenReportsButton', 'OpenLastExportButton', 'OpenLogsButton', 'HealthCheckButton')) {
         if ($controls[$buttonName]) {
             $controls[$buttonName].IsEnabled = $isEnabled
         }
+    }
+    if ($controls.CancelReportButton) {
+        $controls.CancelReportButton.IsEnabled = $Busy -and $null -ne $script:ActiveReportPowerShell
     }
 
     $controls.NavigationList.IsEnabled = $isEnabled
@@ -364,11 +379,13 @@ function Set-BusyState {
 function Set-Results {
     param(
         [object[]]$Data,
-        [string]$ReportName
+        [string]$ReportName,
+        [string]$ReportId
     )
 
     $script:CurrentResults = @($Data)
     $script:CurrentReportName = $ReportName
+    $script:CurrentReportId = $ReportId
     if ($script:CurrentResults.Count -gt $script:LargeResultWarningThreshold) {
         Add-UiLog "WARNING: large result set detected ($($script:CurrentResults.Count) rows). UI rendering may be slower; exports remain available."
         Write-HIRLog -Module GUI -Action SetResults -Level WARNING -Message "Large result set loaded in UI: $($script:CurrentResults.Count) rows."
@@ -381,6 +398,7 @@ function Set-Results {
     $controls.ExportCsvButton.IsEnabled = $hasResults
     $controls.ExportExcelButton.IsEnabled = $hasResults
     $controls.ExportHtmlButton.IsEnabled = $hasResults
+    $controls.ExportJsonButton.IsEnabled = $hasResults
 }
 
 function Set-PreviewRows {
@@ -390,12 +408,14 @@ function Set-PreviewRows {
 
     $script:CurrentResults = @()
     $script:CurrentReportName = $null
+    $script:CurrentReportId = $null
     $controls.ResultsGrid.ItemsSource = $null
     $controls.ResultsGrid.ItemsSource = @($Data)
     $controls.ResultCountText.Text = 'Results: 0'
     $controls.ExportCsvButton.IsEnabled = $false
     $controls.ExportExcelButton.IsEnabled = $false
     $controls.ExportHtmlButton.IsEnabled = $false
+    $controls.ExportJsonButton.IsEnabled = $false
 }
 
 function Get-SectionManagementRows {
@@ -642,6 +662,10 @@ function Test-HIRReportCanRun {
         return $false
     }
 
+    if ($Report.PSObject.Properties.Name -contains 'ActionOnly' -and $Report.ActionOnly) {
+        return $false
+    }
+
     if ($Report.Implemented -eq $true) {
         return $true
     }
@@ -745,6 +769,19 @@ function Update-ReportActionState {
 
     if ($selectedReport -and $selectedReport.Implemented -ne $true) {
         $controls.LastRunText.Text = 'Selected report is planned and not executable yet.'
+    }
+    elseif ($selectedReport -and $selectedReport.PSObject.Properties.Name -contains 'ActionOnly' -and $selectedReport.ActionOnly) {
+        $controls.LastRunText.Text = 'This action is available through the Export JSON button after running a report.'
+    }
+    if ($selectedReport) {
+        try {
+            $access = Get-HIRReportPermission -RootPath $script:RootPath -Report $selectedReport
+            $controls.SectionMetricsText.Text = "{0}`nRisk: {1} | Priority: {2}`nSource: {3}`nDuration: {4}" -f $selectedReport.DisplayName, $selectedReport.RiskLevel, $selectedReport.Priority, $access.Source, $access.TypicalDuration
+            $controls.SectionActionsText.Text = "Purpose: $($selectedReport.Note)`n`nPermissions: $($access.Permissions)`n`nPrerequisites: $($access.Prerequisites)"
+        }
+        catch {
+            Write-HIRLog -Module GUI -Action ReportDetails -Level WARNING -Message $_.Exception.Message
+        }
     }
 }
 
@@ -1370,7 +1407,10 @@ function Ensure-ReportDependencies {
         'Entra.AdminRoleMembers' {
             return Install-RequiredFeature -ModuleName Microsoft.Graph.Identity.DirectoryManagement -FriendlyName 'Microsoft Graph Directory Management module'
         }
-        'Entra.Groups' {
+        'Entra.UsersWithoutMFAMethods' {
+            return Install-RequiredFeature -ModuleName Microsoft.Graph.Reports -FriendlyName 'Microsoft Graph Reports module'
+        }
+        'Entra.Groups*' {
             return Install-RequiredFeature -ModuleName Microsoft.Graph.Groups -FriendlyName 'Microsoft Graph Groups module'
         }
         'Entra.*' {
@@ -1533,6 +1573,7 @@ function Update-NavigationView {
     $controls.ExportCsvButton.IsEnabled = ($script:CurrentResults.Count -gt 0)
     $controls.ExportExcelButton.IsEnabled = ($script:CurrentResults.Count -gt 0)
     $controls.ExportHtmlButton.IsEnabled = ($script:CurrentResults.Count -gt 0)
+    $controls.ExportJsonButton.IsEnabled = ($script:CurrentResults.Count -gt 0)
     $controls.OpenLastExportButton.IsEnabled = [bool]($script:LastExportPath -and (Test-Path -LiteralPath $script:LastExportPath))
 
     if ($sectionChanged) {
@@ -1585,8 +1626,10 @@ function Invoke-VisibleMenuReports {
                 if ($command.Parameters.ContainsKey('SearchBase') -and $script:Connections.ActiveDirectory.SearchBase) { $params.SearchBase = $script:Connections.ActiveDirectory.SearchBase }
                 if ($command.Parameters.ContainsKey('Server') -and $script:Connections.ActiveDirectory.Server) { $params.Server = $script:Connections.ActiveDirectory.Server }
                 if ($command.Parameters.ContainsKey('Days') -and $script:AppSettings.PSObject.Properties.Name -contains 'DefaultInactiveDays') { $params.Days = [int]$script:AppSettings.DefaultInactiveDays }
+                if ($command.Parameters.ContainsKey('RootPath')) { $params.RootPath = $script:RootPath }
 
                 $results = @(& $command @params)
+                Register-HIRRun -RootPath $script:RootPath -ReportId $report.Id -ReportName $report.DisplayName -Data $results -StartedAt $started -RiskLevel $report.RiskLevel | Out-Null
                 $summary.Add([pscustomobject]@{ Report = $report.DisplayName; Status = 'Completed'; Count = $results.Count; DurationSeconds = [int]((Get-Date) - $started).TotalSeconds; Risk = $report.RiskLevel; Note = $report.Note }) | Out-Null
             }
             catch {
@@ -1601,6 +1644,65 @@ function Invoke-VisibleMenuReports {
     finally {
         Set-BusyState -Busy $false
     }
+}
+
+function Start-HIRAsyncReport {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][object]$Report,
+        [Parameter(Mandatory)][hashtable]$Parameters
+    )
+
+    $sessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+    $resolvedModules = @($modulePaths | ForEach-Object { Join-Path $script:RootPath $_ })
+    $sessionState.ImportPSModule($resolvedModules)
+    $runspace = [runspacefactory]::CreateRunspace($sessionState)
+    $runspace.ApartmentState = [System.Threading.ApartmentState]::MTA
+    $runspace.Open()
+    $powerShell = [powershell]::Create()
+    $powerShell.Runspace = $runspace
+    $powerShell.AddCommand([string]$Report.Function) | Out-Null
+    foreach ($entry in $Parameters.GetEnumerator()) {
+        $powerShell.AddParameter($entry.Key, $entry.Value) | Out-Null
+    }
+
+    $script:ActiveReportPowerShell = $powerShell
+    $script:ActiveReportRunspace = $runspace
+    $script:ActiveReport = $Report
+    $script:ActiveReportStarted = Get-Date
+    $script:ActiveReportAsyncResult = $powerShell.BeginInvoke()
+    Set-BusyState -Busy $true -Message "Running asynchronously: $($Report.DisplayName)"
+    $controls.CancelReportButton.IsEnabled = $true
+
+    $timer = New-Object System.Windows.Threading.DispatcherTimer
+    $timer.Interval = [TimeSpan]::FromMilliseconds(250)
+    $script:ActiveReportTimer = $timer
+    $timer.Add_Tick({
+        if (-not $script:ActiveReportAsyncResult -or -not $script:ActiveReportAsyncResult.IsCompleted) { return }
+        $script:ActiveReportTimer.Stop()
+        try {
+            $results = @($script:ActiveReportPowerShell.EndInvoke($script:ActiveReportAsyncResult))
+            Register-HIRRun -RootPath $script:RootPath -ReportId $script:ActiveReport.Id -ReportName $script:ActiveReport.DisplayName -Data $results -StartedAt $script:ActiveReportStarted -RiskLevel $script:ActiveReport.RiskLevel | Out-Null
+            Set-Results -Data $results -ReportName $script:ActiveReport.DisplayName -ReportId $script:ActiveReport.Id
+            Add-UiLog "Report completed asynchronously. Results: $($results.Count)"
+        }
+        catch {
+            $message = $_.Exception.Message
+            Register-HIRRun -RootPath $script:RootPath -ReportId $script:ActiveReport.Id -ReportName $script:ActiveReport.DisplayName -Data @() -StartedAt $script:ActiveReportStarted -RiskLevel $script:ActiveReport.RiskLevel -Status Error -ErrorMessage $message | Out-Null
+            Add-UiLog "ERROR: $message"
+            Show-HIRMessageBox -Message $message -Title 'Report error' -Image Error | Out-Null
+        }
+        finally {
+            if ($script:ActiveReportPowerShell) { $script:ActiveReportPowerShell.Dispose() }
+            if ($script:ActiveReportRunspace) { $script:ActiveReportRunspace.Dispose() }
+            $script:ActiveReportPowerShell = $null
+            $script:ActiveReportRunspace = $null
+            $script:ActiveReportAsyncResult = $null
+            $script:ActiveReportTimer = $null
+            Set-BusyState -Busy $false
+        }
+    })
+    $timer.Start()
 }
 
 function Invoke-SelectedReport {
@@ -1648,9 +1750,22 @@ function Invoke-SelectedReport {
         if ($command.Parameters.ContainsKey('Days') -and $script:AppSettings.PSObject.Properties.Name -contains 'DefaultInactiveDays') {
             $params.Days = [int]$script:AppSettings.DefaultInactiveDays
         }
+        if ($command.Parameters.ContainsKey('RootPath')) {
+            $params.RootPath = $script:RootPath
+        }
 
+        $useAsync = $script:AppSettings.PSObject.Properties.Name -contains 'Runtime' -and
+            $script:AppSettings.Runtime.PSObject.Properties.Name -contains 'AsyncReports' -and
+            [bool]$script:AppSettings.Runtime.AsyncReports
+        if ($useAsync) {
+            Start-HIRAsyncReport -Report $selectedReport -Parameters $params
+            return
+        }
+
+        $started = Get-Date
         $results = @(& $command @params)
-        Set-Results -Data $results -ReportName $selectedReport.DisplayName
+        Register-HIRRun -RootPath $script:RootPath -ReportId $selectedReport.Id -ReportName $selectedReport.DisplayName -Data $results -StartedAt $started -RiskLevel $selectedReport.RiskLevel | Out-Null
+        Set-Results -Data $results -ReportName $selectedReport.DisplayName -ReportId $selectedReport.Id
         Add-UiLog "Report completed. Results: $($results.Count)"
         Write-HIRLog -Module GUI -Action RunReport -Level INFO -Message "Report '$($selectedReport.DisplayName)' completed with $($results.Count) results."
     }
@@ -1660,14 +1775,16 @@ function Invoke-SelectedReport {
         Show-HIRMessageBox -Message $_.Exception.Message -Title 'Report error' -Image Error | Out-Null
     }
     finally {
-        Set-BusyState -Busy $false
+        if (-not $script:ActiveReportPowerShell) {
+            Set-BusyState -Busy $false
+        }
     }
 }
 
 function Export-CurrentReport {
     param(
         [Parameter(Mandatory)]
-        [ValidateSet('Csv', 'Excel', 'Html')]
+        [ValidateSet('Csv', 'Excel', 'Html', 'Json')]
         [string]$Format
     )
 
@@ -1697,6 +1814,9 @@ function Export-CurrentReport {
             }
             Html {
                 Export-HIRReportHtml -ReportName $script:CurrentReportName -Data $script:CurrentResults -RootPath $script:RootPath
+            }
+            Json {
+                Export-HIRReportJson -ReportName $script:CurrentReportName -Data $script:CurrentResults -RootPath $script:RootPath
             }
         }
 
@@ -1826,10 +1946,21 @@ $controls.ConnectExchangeButton.Add_Click({
 })
 
 $controls.RunReportButton.Add_Click({ Invoke-SelectedReport })
+$controls.CancelReportButton.Add_Click({
+    if ($script:ActiveReportPowerShell) {
+        $report = $script:ActiveReport
+        $started = $script:ActiveReportStarted
+        $script:ActiveReportPowerShell.Stop()
+        Register-HIRRun -RootPath $script:RootPath -ReportId $report.Id -ReportName $report.DisplayName -Data @() -StartedAt $started -RiskLevel $report.RiskLevel -Status Cancelled | Out-Null
+        Add-UiLog "Cancellation requested: $($report.DisplayName)"
+        $controls.CancelReportButton.IsEnabled = $false
+    }
+})
 $controls.RunMenuReportsButton.Add_Click({ Invoke-VisibleMenuReports })
 $controls.ExportCsvButton.Add_Click({ Export-CurrentReport -Format Csv })
 $controls.ExportExcelButton.Add_Click({ Export-CurrentReport -Format Excel })
 $controls.ExportHtmlButton.Add_Click({ Export-CurrentReport -Format Html })
+$controls.ExportJsonButton.Add_Click({ Export-CurrentReport -Format Json })
 $controls.ClearResultsButton.Add_Click({
     Set-Results -Data @() -ReportName $null
     Add-UiLog 'Results cleared.'

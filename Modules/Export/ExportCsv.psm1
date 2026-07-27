@@ -24,19 +24,19 @@ function Export-HIRReportCsv {
         Copy-HIRExistingReportsToArchive -RootPath $RootPath -SafeReportName $safeName -Extension csv
         $path = Join-Path $reportDirectory ('{0}-{1}.csv' -f $safeName, (Get-Date -Format 'yyyyMMdd-HHmmss'))
 
-        $metadata = @(
-            [pscustomobject]@{ Metadata = 'ReportName'; Value = $ReportName }
-            [pscustomobject]@{ Metadata = 'ToolVersion'; Value = $toolVersion }
-            [pscustomobject]@{ Metadata = 'ExecutionDate'; Value = (Get-Date).ToString('s') }
-            [pscustomobject]@{ Metadata = 'ResultCount'; Value = @($Data).Count }
-        )
-
-        $metadataCsv = $metadata | ConvertTo-Csv -NoTypeInformation -Delimiter $Delimiter
-        Set-Content -LiteralPath $path -Value $metadataCsv -Encoding UTF8
-        Add-Content -LiteralPath $path -Value '' -Encoding UTF8
-        $csvData = $Data | ConvertTo-Csv -NoTypeInformation -Delimiter $Delimiter
-        if ($csvData) {
-            Add-Content -LiteralPath $path -Value $csvData -Encoding UTF8
+        @($Data) | Export-Csv -LiteralPath $path -NoTypeInformation -Delimiter $Delimiter -Encoding UTF8
+        if (-not ($appSettings.PSObject.Properties.Name -contains 'Exports') -or
+            -not ($appSettings.Exports.PSObject.Properties.Name -contains 'WriteMetadataSidecar') -or
+            $appSettings.Exports.WriteMetadataSidecar) {
+            $metadataPath = [System.IO.Path]::ChangeExtension($path, '.metadata.json')
+            [ordered]@{
+                SchemaVersion = 1
+                ReportName = $ReportName
+                ToolVersion = $toolVersion
+                ExecutionDate = (Get-Date).ToString('o')
+                ResultCount = @($Data).Count
+                DataFile = [System.IO.Path]::GetFileName($path)
+            } | ConvertTo-Json | Set-Content -LiteralPath $metadataPath -Encoding UTF8
         }
         $path
     }

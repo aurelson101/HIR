@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0 - 2026-07-27
+
+### Added
+
+- Persisted run history, snapshot comparison, explainable risk scores and executive HTML summaries.
+- MFA registration, Entra group ownership, privileged password and Exchange delegation reports.
+- JSON export, CSV metadata sidecars, report permission details and cancellable asynchronous execution.
+- Pester tests, Windows CI, versioned packaging and internal Authenticode signing workflow.
+
+### Changed
+
+- Existing exports are moved to the archive instead of repeatedly copied.
+- CSV exports are now conventional single-table files for Power BI, SIEM and automation.
+- Export and archive retention/security settings are configurable.
+
 ## 0.2.0 - 2026-07-10
 
 ### Added

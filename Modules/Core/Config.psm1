@@ -63,6 +63,25 @@ function Get-HIRPlannedReportSettings {
     Get-HIRJsonFile -Path $path
 }
 
+function Get-HIRReportPermission {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$RootPath,
+        [Parameter(Mandatory)][object]$Report
+    )
+
+    $config = Get-HIRJsonFile -Path (Join-Path $RootPath 'Config\report-permissions.json')
+    $defaults = $config.Defaults.PSObject.Properties[[string]$Report.Category].Value
+    $overrideProperty = $config.Overrides.PSObject.Properties[[string]$Report.Id]
+    $override = if ($overrideProperty) { $overrideProperty.Value } else { $null }
+    [pscustomobject]@{
+        Source = if ($override -and $override.PSObject.Properties.Name -contains 'Source') { $override.Source } else { $defaults.Source }
+        Permissions = if ($override -and $override.PSObject.Properties.Name -contains 'Permissions') { $override.Permissions } else { $defaults.Permissions }
+        Prerequisites = if ($override -and $override.PSObject.Properties.Name -contains 'Prerequisites') { $override.Prerequisites } else { $defaults.Prerequisites }
+        TypicalDuration = if ($override -and $override.PSObject.Properties.Name -contains 'TypicalDuration') { $override.TypicalDuration } else { $defaults.TypicalDuration }
+    }
+}
+
 function Merge-HIRPlannedReportSettings {
     [CmdletBinding()]
     param(
@@ -113,4 +132,4 @@ function Merge-HIRPlannedReportSettings {
     @($merged)
 }
 
-Export-ModuleMember -Function Get-HIRAppSettings, Get-HIRConnections, Get-HIRReportCatalog, Get-HIRPlannedReportSettings, Merge-HIRPlannedReportSettings, Get-HIRJsonFile
+Export-ModuleMember -Function Get-HIRAppSettings, Get-HIRConnections, Get-HIRReportCatalog, Get-HIRPlannedReportSettings, Merge-HIRPlannedReportSettings, Get-HIRReportPermission, Get-HIRJsonFile

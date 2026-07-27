@@ -2,7 +2,7 @@
 
 ![Hybrid Identity Reporter presentation](./HIR.png)
 
-Current version: `0.2.0`
+Current version: `0.3.0`
 
 Hybrid Identity Reporter is a read-only PowerShell and WPF audit tool for hybrid identity environments.
 
@@ -162,8 +162,9 @@ After running a report, use:
 - `Export CSV`
 - `Export Excel`
 - `Export HTML`
+- `Export JSON`
 
-Exports are written to `Reports` and include:
+Exports are written to `Reports`. CSV files remain single-table datasets and receive a `.metadata.json` companion file. JSON exports use a stable envelope containing:
 
 - Report name
 - Tool version
@@ -172,6 +173,24 @@ Exports are written to `Reports` and include:
 - Report data
 
 Excel export requires the `ImportExcel` module.
+
+## History and Executive Views
+
+Each completed report writes a manifest and JSON snapshot under `Reports\History`. The Executive Summary menu can display run history, compare the two latest snapshots, calculate an explainable risk score, and generate an HTML summary. The score is the finding count multiplied by a visible weight: Critical 10, High 6, Medium 3, Low 1.
+
+## Permissions
+
+Selecting a report displays its source, prerequisites, expected duration and minimum read permissions. See `REPORT-PERMISSIONS.md` and `Config\report-permissions.json`.
+
+## Quality and Packaging
+
+```powershell
+Invoke-Pester -Path .\Tests -CI
+.\Tools\Build-HIRPackage.ps1
+.\Tools\Sign-HIRScripts.ps1 -CertificateThumbprint '<CODE_SIGNING_CERTIFICATE_THUMBPRINT>'
+```
+
+The GitHub Actions workflow performs PSScriptAnalyzer, Pester, project/XAML validation and an unsigned package build on Windows. Signing remains an internal release action because the private key must never be stored in the repository.
 
 ## Logs
 
@@ -234,8 +253,6 @@ Hybrid-Identity-Reporter/
 
 ## Future Improvements
 
-- Add report archive rotation based on `Config/appsettings.json`
-- Add asynchronous report execution to keep the WPF UI responsive during long tenant queries
-- Add application settings UI and a dedicated dependency health page
-- Add Graph MFA method reporting using Microsoft Graph authentication methods endpoints
-- Add optional script signing and an internal code-signing workflow
+- Add a dedicated graphical settings editor with schema validation
+- Add configurable stable identity keys for field-level snapshot comparisons
+- Add optional scheduled console execution on a hardened administration host

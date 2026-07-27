@@ -6,18 +6,18 @@ Ce document liste les améliorations recommandées pour industrialiser **Hybrid 
 
 | Sujet | Recommandation | Bénéfice |
 | --- | --- | --- |
-| Tests PowerShell | Ajouter des tests Pester pour les modules `Core`, `Export` et le mapping `Config/reports.json`. | Détecte les régressions avant livraison. |
+| Tests PowerShell | Implémenté : tests Pester pour `Core`, `Export`, l'historique, les permissions et le mapping `Config/reports.json`. | Détecte les régressions avant livraison. |
 | Validation projet | Utiliser `Tools\Test-HIRProject.ps1` hors GUI avant livraison. | Permet une vérification rapide en console ou CI. |
 | Validation configuration | Implémenté partiellement : Health Check et `Tools\Test-HIRProject.ps1` valident `connections.json`, `appsettings.json`, `reports.json` et `planned-reports.json`. | Évite les erreurs silencieuses après modification de la configuration. |
-| Logs | Ajouter une rotation automatique selon `Logging.RetainDays`. | Évite l'accumulation de logs sur le serveur. |
+| Logs | Implémenté : purge automatique selon `Logging.RetainDays`. | Évite l'accumulation de logs sur le serveur. |
 | Exports | Ajouter une option d'ouverture automatique du fichier exporté après génération. | Améliore l'expérience opérateur. |
 
 ## Priorité 2 - Exploitation
 
 | Sujet | Recommandation | Bénéfice |
 | --- | --- | --- |
-| Signature | Signer les scripts PowerShell avec un certificat interne. | Compatible avec `AllSigned` et améliore la traçabilité. |
-| Packaging | Fournir une archive versionnée `Hybrid-Identity-Reporter-x.y.z.zip`. | Facilite le déploiement sur un serveur d'administration ou un poste d'audit. |
+| Signature | Workflow prêt : `Tools\Sign-HIRScripts.ps1` utilise un certificat interne fourni par empreinte. | Compatible avec `AllSigned` et améliore la traçabilité. |
+| Packaging | Implémenté : `Tools\Build-HIRPackage.ps1` génère une archive versionnée et un manifeste SHA-256. | Facilite le déploiement sur un serveur d'administration ou un poste d'audit. |
 | Versioning | Afficher la version dans le README, l'interface et les exports. | Simplifie le support et les comparaisons de résultats. |
 | Raccourci | Implémenté : `launch.bat` lance `Start-Hybrid-Identity-Reporter.ps1` en STA depuis le dossier courant. | Réduit les erreurs de lancement. |
 | Dossier dédié | Exécuter depuis la racine du projet ou un chemin standard validé. | Stabilise les chemins d'exploitation. |
@@ -27,7 +27,7 @@ Ce document liste les améliorations recommandées pour industrialiser **Hybrid 
 
 | Sujet | Recommandation | Bénéfice |
 | --- | --- | --- |
-| Permissions | Documenter les droits minimaux AD, Graph et Exchange requis. | Réduit le besoin de comptes trop privilégiés. |
+| Permissions | Implémenté : configuration et affichage par rapport, avec `REPORT-PERMISSIONS.md`. | Réduit le besoin de comptes trop privilégiés. |
 | Comptes admin | Privilégier un compte d'audit avec droits lecture seule. | Respect du moindre privilège. |
 | Scopes Graph | Garder les scopes Graph limités aux rapports utilisés. | Limite l'exposition en cas de compromission. |
 | Exports | Protéger le dossier `Reports` par ACL si les rapports contiennent des données sensibles. | Réduit le risque de fuite d'information. |
@@ -40,7 +40,7 @@ Ce document liste les améliorations recommandées pour industrialiser **Hybrid 
 | Recherche rapport | Implémenté : zone de recherche dans la liste des rapports. | Accès plus rapide quand le catalogue grossit. |
 | Filtre statut/risque | Implémenté : filtres `Implemented / Planned` et `Critical / High / Medium / Low`. | Sépare mieux les rapports exploitables, la roadmap et les risques. |
 | Configuration planned | Implémenté : `Config\planned-reports.json` pilote la visibilité et les métadonnées des rapports prévus. | Permet d'adapter la roadmap sans modifier le catalogue principal. |
-| Détails rapport | Ajouter un panneau de détail avec prérequis et description du rapport sélectionné. | Aide l'utilisateur avant exécution. |
+| Détails rapport | Implémenté dans la vue d'ensemble : source, permissions, prérequis, durée et finalité. | Aide l'utilisateur avant exécution. |
 | Export rapide | Implémenté : bouton `Open Last Export`. | Accès direct au dernier fichier généré. |
 | Health check visuel | Implémenté : synthèse dédiée et coloration des statuts dans le résultat du health check. | Fait ressortir plus vite les erreurs et avertissements. |
 | Indicateur de charge | Implémenté : bandeau de chargement et barre de progression pendant les actions longues. | Rend l'interface plus lisible pendant les opérations lourdes. |
@@ -50,9 +50,9 @@ Ce document liste les améliorations recommandées pour industrialiser **Hybrid 
 
 | Sujet | Recommandation | Bénéfice |
 | --- | --- | --- |
-| PSScriptAnalyzer | Exécuter `Invoke-ScriptAnalyzer` sur les `.ps1` et `.psm1`. | Repère les erreurs de style et de robustesse. |
-| Pester | Exécuter les tests unitaires à chaque modification. | Sécurise les modules critiques. |
-| Build local | Ajouter un script `Build-HIRPackage.ps1`. | Génère une archive propre avec uniquement les fichiers nécessaires. |
+| PSScriptAnalyzer | Implémenté dans la CI Windows. | Repère les erreurs de style et de robustesse. |
+| Pester | Implémenté dans la CI Windows. | Sécurise les modules critiques. |
+| Build local | Implémenté avec `Tools\Build-HIRPackage.ps1`. | Génère une archive propre avec uniquement les fichiers nécessaires. |
 | Changelog | Maintenir `CHANGELOG.md`. | Traçabilité des versions. |
 | Documentation | Garder `REPORTS-PAR-MENU.md` synchronisé avec `Config/reports.json`. | Évite la dérive documentaire. |
 

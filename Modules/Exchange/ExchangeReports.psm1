@@ -44,4 +44,47 @@ function Get-HIRExchangeHiddenFromGAL {
     }
 }
 
-Export-ModuleMember -Function Get-HIRExchangeUserMailboxes, Get-HIRExchangeSharedMailboxes, Get-HIRExchangeMailboxesWithForwarding, Get-HIRExchangeHiddenFromGAL
+function Get-HIRExchangeFullAccessMailboxPermissions {
+    [CmdletBinding()]
+    param()
+
+    Invoke-HIRSafeCommand -Module Exchange -Action 'Full Access mailbox permissions report' -ScriptBlock {
+        foreach ($mailbox in Get-EXOMailbox -ResultSize Unlimited -Properties PrimarySmtpAddress -ErrorAction Stop) {
+            Get-EXOMailboxPermission -Identity $mailbox.UserPrincipalName -ErrorAction Stop |
+                Where-Object { -not $_.IsInherited -and $_.User -notlike 'NT AUTHORITY\\SELF' -and $_.AccessRights -contains 'FullAccess' } |
+                Select-Object @{Name = 'Mailbox'; Expression = { $mailbox.PrimarySmtpAddress }}, User, AccessRights, IsInherited, Deny
+        }
+    }
+}
+
+function Get-HIRExchangeSendAsPermissions {
+    [CmdletBinding()]
+    param()
+
+    Invoke-HIRSafeCommand -Module Exchange -Action 'Send As permissions report' -ScriptBlock {
+        Get-EXORecipient -ResultSize Unlimited -ErrorAction Stop | ForEach-Object {
+            $recipient = $_
+            Get-RecipientPermission -Identity $recipient.Identity -ErrorAction Stop |
+                Where-Object { -not $_.IsInherited -and $_.Trustee -notlike 'NT AUTHORITY\\SELF' -and $_.AccessRights -contains 'SendAs' } |
+                Select-Object @{Name = 'Recipient'; Expression = { $recipient.PrimarySmtpAddress }}, Trustee, AccessRights, IsInherited
+        }
+    }
+}
+
+function Get-HIRExchangeSendOnBehalfPermissions {
+    [CmdletBinding()]
+    param()
+
+    Invoke-HIRSafeCommand -Module Exchange -Action 'Send on Behalf permissions report' -ScriptBlock {
+        Get-EXOMailbox -ResultSize Unlimited -Properties GrantSendOnBehalfTo -ErrorAction Stop |
+            Where-Object { @($_.GrantSendOnBehalfTo).Count -gt 0 } |
+            ForEach-Object {
+                $mailbox = $_
+                foreach ($delegate in @($mailbox.GrantSendOnBehalfTo)) {
+                    [pscustomobject]@{ Mailbox = $mailbox.PrimarySmtpAddress; Delegate = [string]$delegate; Permission = 'SendOnBehalf' }
+                }
+            }
+    }
+}
+
+Export-ModuleMember -Function Get-HIRExchangeUserMailboxes, Get-HIRExchangeSharedMailboxes, Get-HIRExchangeMailboxesWithForwarding, Get-HIRExchangeHiddenFromGAL, Get-HIRExchangeFullAccessMailboxPermissions, Get-HIRExchangeSendAsPermissions, Get-HIRExchangeSendOnBehalfPermissions

@@ -192,10 +192,12 @@
                         <Button x:Name="ConnectEntraButton" Content="Connect Entra ID" MinWidth="145" />
                         <Button x:Name="ConnectExchangeButton" Content="Connect Exchange Online" MinWidth="185" />
                         <Button x:Name="RunReportButton" Content="Run Report" FontWeight="SemiBold" Background="#D8ECFA" BorderBrush="#74A9D8" />
+                        <Button x:Name="CancelReportButton" Content="Cancel Report" IsEnabled="False" />
                         <Button x:Name="RunMenuReportsButton" Content="Run Menu Reports" MinWidth="160" />
                         <Button x:Name="ExportCsvButton" Content="Export CSV" />
                         <Button x:Name="ExportExcelButton" Content="Export Excel" />
                         <Button x:Name="ExportHtmlButton" Content="Export HTML" />
+                        <Button x:Name="ExportJsonButton" Content="Export JSON" />
                         <Button x:Name="ClearResultsButton" Content="Clear Results" />
                         <Button x:Name="OpenReportsButton" Content="Open Reports" />
                         <Button x:Name="OpenLastExportButton" Content="Open Last Export" MinWidth="150" />

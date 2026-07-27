@@ -254,30 +254,30 @@
     "DisplayName": "Users Without MFA Methods",
     "Category": "Security / IAM",
     "Function": "Get-HIREntraUsersWithoutMFAMethods",
-    "Implemented": false,
+    "Implemented": true,
     "Priority": "High",
     "RiskLevel": "Critical",
-    "Note": "Planned report for users without registered MFA methods."
+    "Note": "Find users without registered MFA methods using Graph registration details."
   },
   {
     "Id": "Exchange.FullAccessMailboxPermissions",
     "DisplayName": "Full Access Mailbox Permissions",
     "Category": "Exchange Online",
     "Function": "Get-HIRExchangeFullAccessMailboxPermissions",
-    "Implemented": false,
+    "Implemented": true,
     "Priority": "High",
     "RiskLevel": "High",
-    "Note": "Planned mailbox delegation review for Full Access permissions."
+    "Note": "Review explicit Full Access mailbox delegations."
   },
   {
     "Id": "Exchange.SendAsPermissions",
     "DisplayName": "Send As Permissions",
     "Category": "Exchange Online",
     "Function": "Get-HIRExchangeSendAsPermissions",
-    "Implemented": false,
+    "Implemented": true,
     "Priority": "High",
     "RiskLevel": "High",
-    "Note": "Planned mailbox delegation review for Send As permissions."
+    "Note": "Review explicit Send As recipient delegations."
   },
   {
     "Id": "Hybrid.DuplicateUPN",
@@ -314,10 +314,10 @@
     "DisplayName": "Send On Behalf Permissions",
     "Category": "Exchange Online",
     "Function": "Get-HIRExchangeSendOnBehalfPermissions",
-    "Implemented": false,
+    "Implemented": true,
     "Priority": "High",
     "RiskLevel": "High",
-    "Note": "Planned mailbox delegation review for Send on Behalf permissions."
+    "Note": "Review mailbox Send on Behalf delegations."
   },
   {
     "Id": "Exchange.ExternalForwarding",
@@ -354,10 +354,10 @@
     "DisplayName": "Admin Accounts Password Never Expires",
     "Category": "Security / IAM",
     "Function": "Get-HIRADAdminPasswordNeverExpiresUsers",
-    "Implemented": false,
+    "Implemented": true,
     "Priority": "High",
     "RiskLevel": "Critical",
-    "Note": "Planned refinement of Password Never Expires, focused only on privileged AD accounts."
+    "Note": "Find enabled adminCount accounts with non-expiring passwords."
   },
   {
     "Id": "AD.ExtendedPrivilegedGroupsMembers",
@@ -404,10 +404,10 @@
     "DisplayName": "Entra Groups Without Owners",
     "Category": "Entra ID",
     "Function": "Get-HIREntraGroupsWithoutOwners",
-    "Implemented": false,
+    "Implemented": true,
     "Priority": "Medium",
     "RiskLevel": "Medium",
-    "Note": "Planned governance report for Entra groups without owners."
+    "Note": "Find Entra groups without an accountable owner."
   },
   {
     "Id": "AD.GroupsWithoutManagedBy",
@@ -454,49 +454,50 @@
     "DisplayName": "Export JSON",
     "Category": "Exports",
     "Function": "Export-HIRReportJson",
-    "Implemented": false,
+    "Implemented": true,
+    "ActionOnly": true,
     "Priority": "Low",
     "RiskLevel": "Low",
-    "Note": "Planned JSON export for SIEM or automation integration."
+    "Note": "Structured JSON export for SIEM and automation integration."
   },
   {
     "Id": "Executive.SummaryHtml",
     "DisplayName": "Executive Summary HTML",
     "Category": "Executive Summary",
     "Function": "Export-HIRExecutiveSummaryHtml",
-    "Implemented": false,
+    "Implemented": true,
     "Priority": "Low",
     "RiskLevel": "Medium",
-    "Note": "Planned high-level summary with scores and counters."
+    "Note": "Generate an explainable HTML summary from latest completed runs."
   },
   {
     "Id": "Executive.CompareExports",
     "DisplayName": "Compare Two Exports",
     "Category": "Executive Summary",
     "Function": "Compare-HIRReportExports",
-    "Implemented": false,
+    "Implemented": true,
     "Priority": "Low",
     "RiskLevel": "Low",
-    "Note": "Planned comparison between two report exports."
+    "Note": "Compare the two latest completed snapshots for a report."
   },
   {
     "Id": "Executive.RunHistory",
     "DisplayName": "Run History",
     "Category": "Executive Summary",
     "Function": "Get-HIRRunHistory",
-    "Implemented": false,
+    "Implemented": true,
     "Priority": "Low",
     "RiskLevel": "Low",
-    "Note": "Planned run history for monthly tracking."
+    "Note": "Review persisted report execution history."
   },
   {
     "Id": "Executive.ReportRiskScore",
     "DisplayName": "Report Risk Score",
     "Category": "Executive Summary",
     "Function": "Get-HIRReportRiskScore",
-    "Implemented": false,
+    "Implemented": true,
     "Priority": "Low",
     "RiskLevel": "Medium",
-    "Note": "Planned risk scoring view for prioritization."
+    "Note": "Explainable finding count multiplied by an explicit risk weight."
   }
 ]

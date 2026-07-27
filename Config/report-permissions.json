@@ -1,0 +1,67 @@
+{
+  "Defaults": {
+    "Active Directory": {
+      "Source": "Active Directory",
+      "Permissions": "Authenticated domain read access; no write delegation.",
+      "Prerequisites": "RSAT ActiveDirectory and network access to a domain controller.",
+      "TypicalDuration": "Seconds to a few minutes depending on directory size."
+    },
+    "Entra ID": {
+      "Source": "Microsoft Graph",
+      "Permissions": "User.Read.All and/or Group.Read.All as required by the report.",
+      "Prerequisites": "Microsoft.Graph modules and an authenticated Graph context.",
+      "TypicalDuration": "Seconds to several minutes; owner checks perform additional paged calls."
+    },
+    "Exchange Online": {
+      "Source": "Exchange Online PowerShell",
+      "Permissions": "View-Only Recipients or an equivalent read-only Exchange role.",
+      "Prerequisites": "ExchangeOnlineManagement and an authenticated Exchange Online session.",
+      "TypicalDuration": "Seconds to several minutes depending on recipient count."
+    },
+    "Hybrid Reports": {
+      "Source": "Active Directory and/or Exchange Online",
+      "Permissions": "Read access to every source used by the selected report.",
+      "Prerequisites": "Connect each source named in the report description.",
+      "TypicalDuration": "Several minutes in large hybrid environments."
+    },
+    "Security / IAM": {
+      "Source": "Active Directory or Microsoft Graph",
+      "Permissions": "Read-only directory permissions; privileged reports do not require remediation rights.",
+      "Prerequisites": "Connect the source associated with the selected function.",
+      "TypicalDuration": "Seconds to several minutes."
+    },
+    "Executive Summary": {
+      "Source": "Local HIR run history",
+      "Permissions": "Local read access to Reports/History.",
+      "Prerequisites": "Run operational reports first to create history snapshots.",
+      "TypicalDuration": "Usually under one minute."
+    },
+    "Exports": {
+      "Source": "Current in-memory report results",
+      "Permissions": "Local write access to Reports and Archive.",
+      "Prerequisites": "Run a report before exporting.",
+      "TypicalDuration": "Seconds; large data sets may take longer."
+    }
+  },
+  "Overrides": {
+    "Entra.UsersWithoutMFAMethods": {
+      "Permissions": "Reports.Read.All.",
+      "Prerequisites": "Microsoft.Graph.Reports and an authenticated Graph context."
+    },
+    "Entra.AdminRoleMembers": {
+      "Permissions": "RoleManagement.Read.Directory and Directory.Read.All."
+    },
+    "Entra.GroupsWithoutOwners": {
+      "Permissions": "Group.Read.All and User.Read.All."
+    },
+    "Exchange.FullAccessMailboxPermissions": {
+      "Permissions": "View-Only Recipients plus permission to read mailbox permission entries."
+    },
+    "Exchange.SendAsPermissions": {
+      "Permissions": "View-Only Recipients plus permission to read recipient permission entries."
+    },
+    "Exchange.SendOnBehalfPermissions": {
+      "Permissions": "View-Only Recipients."
+    }
+  }
+}
