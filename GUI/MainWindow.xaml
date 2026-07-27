@@ -181,21 +181,39 @@
                     </Grid>
                 </Border>
 
-                <WrapPanel x:Name="ActionPanel" Grid.Row="1" Margin="0,0,0,14">
-                    <Button x:Name="ConnectADButton" Content="Connect AD" />
-                    <Button x:Name="ConnectEntraButton" Content="Connect Entra ID" MinWidth="145" />
-                    <Button x:Name="ConnectExchangeButton" Content="Connect Exchange Online" MinWidth="185" />
-                    <Button x:Name="RunReportButton" Content="Run Report" FontWeight="SemiBold" Background="#D8ECFA" BorderBrush="#74A9D8" />
-                    <Button x:Name="RunMenuReportsButton" Content="Run Menu Reports" MinWidth="160" />
-                    <Button x:Name="ExportCsvButton" Content="Export CSV" />
-                    <Button x:Name="ExportExcelButton" Content="Export Excel" />
-                    <Button x:Name="ExportHtmlButton" Content="Export HTML" />
-                    <Button x:Name="ClearResultsButton" Content="Clear Results" />
-                    <Button x:Name="OpenReportsButton" Content="Open Reports" />
-                    <Button x:Name="OpenLastExportButton" Content="Open Last Export" MinWidth="150" />
-                    <Button x:Name="OpenLogsButton" Content="Open Logs" />
-                    <Button x:Name="HealthCheckButton" Content="Run Health Check" MinWidth="150" />
-                </WrapPanel>
+                <Grid Grid.Row="1" Margin="0,0,0,14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <WrapPanel x:Name="ActionPanel" Grid.Row="0">
+                        <Button x:Name="ConnectADButton" Content="Connect AD" />
+                        <Button x:Name="ConnectEntraButton" Content="Connect Entra ID" MinWidth="145" />
+                        <Button x:Name="ConnectExchangeButton" Content="Connect Exchange Online" MinWidth="185" />
+                        <Button x:Name="RunReportButton" Content="Run Report" FontWeight="SemiBold" Background="#D8ECFA" BorderBrush="#74A9D8" />
+                        <Button x:Name="RunMenuReportsButton" Content="Run Menu Reports" MinWidth="160" />
+                        <Button x:Name="ExportCsvButton" Content="Export CSV" />
+                        <Button x:Name="ExportExcelButton" Content="Export Excel" />
+                        <Button x:Name="ExportHtmlButton" Content="Export HTML" />
+                        <Button x:Name="ClearResultsButton" Content="Clear Results" />
+                        <Button x:Name="OpenReportsButton" Content="Open Reports" />
+                        <Button x:Name="OpenLastExportButton" Content="Open Last Export" MinWidth="150" />
+                        <Button x:Name="OpenLogsButton" Content="Open Logs" />
+                        <Button x:Name="HealthCheckButton" Content="Run Health Check" MinWidth="150" />
+                    </WrapPanel>
+
+                    <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#D8E2EC" BorderThickness="1" Margin="0,8,0,0" Padding="10,8" x:Name="BusyIndicatorPanel" Visibility="Collapsed">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="200" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="BusyStatusText" Grid.Column="0" Text="Working..." Foreground="#52606D" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <ProgressBar x:Name="BusyProgressBar" Grid.Column="1" Height="10" IsIndeterminate="True" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                </Grid>
 
                 <Grid x:Name="ReportLogGrid" Grid.Row="2">
                     <Grid.ColumnDefinitions>
@@ -290,7 +308,46 @@
                     EnableColumnVirtualization="True"
                     HorizontalScrollBarVisibility="Auto"
                     VerticalScrollBarVisibility="Auto"
-                    Background="White" />
+                    Background="White">
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="Background" Value="White" />
+                            <Setter Property="Foreground" Value="#102A43" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Status}" Value="OK">
+                                    <Setter Property="Background" Value="#EAF7EE" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Installed">
+                                    <Setter Property="Background" Value="#EAF7EE" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Visible">
+                                    <Setter Property="Background" Value="#EEF6FF" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Valid JSON">
+                                    <Setter Property="Background" Value="#EAF7EE" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Hidden">
+                                    <Setter Property="Background" Value="#FFF7E6" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Warning">
+                                    <Setter Property="Background" Value="#FFF7E6" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Missing">
+                                    <Setter Property="Background" Value="#FDEDEC" />
+                                    <Setter Property="Foreground" Value="#922B21" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Invalid">
+                                    <Setter Property="Background" Value="#FDEDEC" />
+                                    <Setter Property="Foreground" Value="#922B21" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Error">
+                                    <Setter Property="Background" Value="#FDEDEC" />
+                                    <Setter Property="Foreground" Value="#922B21" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+                </DataGrid>
             </Grid>
         </Grid>
 

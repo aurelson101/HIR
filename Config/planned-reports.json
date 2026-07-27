@@ -1,5 +1,5 @@
 ﻿{
-    "ShowPlannedReports":  true,
+    "ShowPlannedReports":  false,
     "AllowRunPlannedReports":  false,
     "Description":  "Controls planned report visibility and metadata overrides. The application UI remains in English.",
     "PlannedReports":  [

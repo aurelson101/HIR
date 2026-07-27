@@ -1,6 +1,9 @@
 #requires -Version 5.1
 [CmdletBinding()]
-param()
+param(
+    [switch]$Console,
+    [switch]$HealthCheck
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -10,9 +13,13 @@ if (-not $isWindowsPlatform) {
     throw 'Hybrid Identity Reporter requires Windows because it uses WPF.'
 }
 
-if ([System.Threading.Thread]::CurrentThread.GetApartmentState() -ne 'STA') {
+if (-not $Console -and [System.Threading.Thread]::CurrentThread.GetApartmentState() -ne 'STA') {
     $pwsh = (Get-Process -Id $PID).Path
-    Start-Process -FilePath $pwsh -ArgumentList @('-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"")
+    $relaunchArgs = @('-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"")
+    if ($HealthCheck) {
+        $relaunchArgs += '-HealthCheck'
+    }
+    Start-Process -FilePath $pwsh -ArgumentList $relaunchArgs
     return
 }
 
@@ -63,6 +70,143 @@ $script:MaxUiLogCharacters = if ($script:AppSettings.PSObject.Properties.Name -c
 $script:LargeResultWarningThreshold = if ($script:AppSettings.PSObject.Properties.Name -contains 'Runtime' -and $script:AppSettings.Runtime.PSObject.Properties.Name -contains 'LargeResultWarningThreshold') { [Math]::Max(100, [int]$script:AppSettings.Runtime.LargeResultWarningThreshold) } else { 10000 }
 $script:LastNavigationSection = $null
 
+function Get-HIRHealthCheckData {
+    [CmdletBinding()]
+    param(
+        [string]$AdStatusText = 'AD: Not loaded',
+        [string]$ExchangeStatusText = 'Exchange Online: Not loaded'
+    )
+
+    $paths = @(
+        @{ Name = 'Config'; Path = Join-Path $script:RootPath 'Config' }
+        @{ Name = 'Reports'; Path = Join-Path $script:RootPath 'Reports' }
+        @{ Name = 'Logs'; Path = Join-Path $script:RootPath 'Logs' }
+        @{ Name = 'Archive'; Path = Join-Path $script:RootPath 'Archive' }
+        @{ Name = 'Templates'; Path = Join-Path $script:RootPath 'Templates' }
+    )
+
+    $checks = @()
+    $checks += [pscustomobject]@{ Area = 'Runtime'; Check = 'PowerShell Version'; Status = $PSVersionTable.PSVersion.ToString(); Recommendation = if ($PSVersionTable.PSVersion.Major -eq 5) { 'OK for WPF GUI and RSAT modules.' } else { 'Windows PowerShell 5.1 is recommended for the WPF launcher.' } }
+    $checks += [pscustomobject]@{ Area = 'Runtime'; Check = 'STA Mode'; Status = [System.Threading.Thread]::CurrentThread.GetApartmentState().ToString(); Recommendation = 'WPF requires STA.' }
+    $checks += [pscustomobject]@{ Area = 'Runtime'; Check = 'TLS'; Status = [Net.ServicePointManager]::SecurityProtocol.ToString(); Recommendation = if (([Net.ServicePointManager]::SecurityProtocol -band [Net.SecurityProtocolType]::Tls12) -eq [Net.SecurityProtocolType]::Tls12) { 'OK' } else { 'Enable TLS 1.2 before PSGallery operations.' } }
+
+    foreach ($moduleName in @('ActiveDirectory', 'Microsoft.Graph.Authentication', 'Microsoft.Graph.Users', 'Microsoft.Graph.Groups', 'Microsoft.Graph.Identity.DirectoryManagement', 'ExchangeOnlineManagement', 'ImportExcel')) {
+        $installed = Test-HIRModuleInstalled -Name $moduleName
+        $checks += [pscustomobject]@{ Area = 'Module'; Check = $moduleName; Status = if ($installed) { 'Installed' } else { 'Missing' }; Recommendation = if ($installed) { 'OK' } else { 'Use the relevant Connect or Export button to install on demand.' } }
+    }
+
+    foreach ($pathInfo in $paths) {
+        $exists = Test-Path -LiteralPath $pathInfo.Path
+        $checks += [pscustomobject]@{ Area = 'Path'; Check = $pathInfo.Name; Status = if ($exists) { 'OK' } else { 'Missing' }; Recommendation = $pathInfo.Path }
+    }
+
+    foreach ($jsonFile in @('appsettings.json', 'connections.json', 'reports.json', 'planned-reports.json')) {
+        $path = Join-Path $script:RootPath "Config\$jsonFile"
+        try {
+            Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json | Out-Null
+            $checks += [pscustomobject]@{ Area = 'Config'; Check = $jsonFile; Status = 'Valid JSON'; Recommendation = 'OK' }
+        }
+        catch {
+            $checks += [pscustomobject]@{ Area = 'Config'; Check = $jsonFile; Status = 'Invalid'; Recommendation = $_.Exception.Message }
+        }
+    }
+
+    $implemented = @($script:ReportCatalog | Where-Object { $_.Implemented -eq $true }).Count
+    $planned = @($script:ReportCatalog | Where-Object { $_.Implemented -ne $true }).Count
+    $checks += [pscustomobject]@{ Area = 'Catalog'; Check = 'Reports'; Status = "$($script:ReportCatalog.Count) total"; Recommendation = "$implemented implemented, $planned planned." }
+    $checks += [pscustomobject]@{ Area = 'Catalog'; Check = 'Planned report configuration'; Status = if ($script:PlannedReportSettings.ShowPlannedReports) { 'Visible' } else { 'Hidden' }; Recommendation = 'Edit Config\planned-reports.json to show, hide or annotate planned reports.' }
+
+    $missingFunctions = @($script:ReportCatalog | Where-Object { $_.Implemented -eq $true } | Where-Object { -not (Get-Command -Name $_.Function -ErrorAction SilentlyContinue) })
+    $checks += [pscustomobject]@{ Area = 'Catalog'; Check = 'Implemented functions'; Status = if ($missingFunctions.Count -eq 0) { 'OK' } else { 'Missing functions' }; Recommendation = if ($missingFunctions.Count -eq 0) { 'All implemented reports resolve to a function.' } else { ($missingFunctions.Function -join ', ') } }
+
+    $checks += [pscustomobject]@{ Area = 'Suggestion'; Check = 'Startup folder'; Status = 'Portable'; Recommendation = "Current root: $script:RootPath" }
+    $checks += [pscustomobject]@{ Area = 'Suggestion'; Check = 'Graph reports'; Status = $null; Recommendation = 'Connect Entra ID before running Graph user, group or role reports.' }
+    $checks += [pscustomobject]@{ Area = 'Suggestion'; Check = 'Hybrid reports'; Status = ('{0} | {1}' -f $AdStatusText, $ExchangeStatusText); Recommendation = 'Hybrid reports need AD plus Exchange Online context.' }
+
+    return @($checks)
+}
+
+function Get-HIRHealthCheckSeverity {
+    param([AllowNull()][string]$Status)
+
+    if ([string]::IsNullOrWhiteSpace($Status)) {
+        return 'Info'
+    }
+
+    switch -Regex ($Status) {
+        '(Missing|Invalid|Error)' { return 'Error' }
+        '(Hidden|Disconnected|Warning)' { return 'Warning' }
+        '(OK|Installed|Visible|Valid JSON|Connected|Portable)' { return 'OK' }
+        default { return 'Info' }
+    }
+}
+
+function Update-HealthCheckVisual {
+    param(
+        [Parameter(Mandatory)]
+        [object[]]$Checks
+    )
+
+    $total = @($Checks).Count
+    $okCount = 0
+    $warningCount = 0
+    $errorCount = 0
+
+    foreach ($check in @($Checks)) {
+        switch (Get-HIRHealthCheckSeverity -Status ([string]$check.Status)) {
+            'OK' { $okCount++ }
+            'Warning' { $warningCount++ }
+            'Error' { $errorCount++ }
+        }
+    }
+
+    $controls.SectionDescriptionText.Text = 'Health check completed: {0} OK, {1} warnings, {2} errors.' -f $okCount, $warningCount, $errorCount
+    $controls.SectionMetricsText.Text = "Health check summary`nTotal checks: $total`nOK: $okCount`nWarnings: $warningCount`nErrors: $errorCount"
+    $controls.SectionActionsText.Text = "Suggested next steps:`n- Open Logs if any error is present`n- Install missing modules before running reports`n- Re-run Health Check after remediation"
+
+    $controls.LegendPanel.Children.Clear()
+    Add-LegendItem -Label "OK: $okCount" -Brush ([System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(39, 174, 96)))
+    Add-LegendItem -Label "Warnings: $warningCount" -Brush ([System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(243, 156, 18)))
+    Add-LegendItem -Label "Errors: $errorCount" -Brush ([System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(192, 57, 43)))
+    Add-LegendItem -Label "Total checks: $total" -Brush ([System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(52, 152, 219)))
+}
+
+function Invoke-HIRConsoleMode {
+    [CmdletBinding()]
+    param()
+
+    Write-Host ('{0} v{1}' -f $script:AppSettings.ApplicationName, $script:AppSettings.Version)
+    Write-Host ('Root: {0}' -f $script:RootPath)
+    Write-Host ('Reports: {0} total, {1} implemented, {2} planned' -f $script:ReportCatalog.Count, @($script:ReportCatalog | Where-Object { $_.Implemented -eq $true }).Count, @($script:ReportCatalog | Where-Object { $_.Implemented -ne $true }).Count)
+    Write-Host ''
+
+    $checks = @(Get-HIRHealthCheckData)
+    $summary = [pscustomobject]@{
+        OK       = @($checks | Where-Object { (Get-HIRHealthCheckSeverity -Status ([string]$_.Status)) -eq 'OK' }).Count
+        Warning  = @($checks | Where-Object { (Get-HIRHealthCheckSeverity -Status ([string]$_.Status)) -eq 'Warning' }).Count
+        Error    = @($checks | Where-Object { (Get-HIRHealthCheckSeverity -Status ([string]$_.Status)) -eq 'Error' }).Count
+        Total    = $checks.Count
+    }
+
+    Write-Host 'Health check summary:'
+    $summary | Format-List | Out-String | Write-Host
+    Write-Host 'Health check details:'
+    $checks | Sort-Object Area, Check | Format-Table Area, Check, Status, Recommendation -AutoSize | Out-String -Width 220 | Write-Host
+
+    if ($summary.Error -gt 0) {
+        Write-Host 'Console health check completed with errors.'
+        return 1
+    }
+
+    Write-Host 'Console health check completed successfully.'
+    return 0
+}
+
+if ($Console) {
+    $exitCode = Invoke-HIRConsoleMode
+    exit $exitCode
+}
+
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 [xml]$xaml = Get-Content -LiteralPath (Join-Path $script:RootPath 'GUI\MainWindow.xaml') -Raw -Encoding UTF8
 $reader = New-Object System.Xml.XmlNodeReader $xaml
@@ -101,6 +245,9 @@ $controls = @{
     SectionTitleText    = Get-Control -Name SectionTitleText
     SectionDescriptionText = Get-Control -Name SectionDescriptionText
     DependencySummaryText = Get-Control -Name DependencySummaryText
+    BusyIndicatorPanel  = Get-Control -Name BusyIndicatorPanel
+    BusyStatusText      = Get-Control -Name BusyStatusText
+    BusyProgressBar     = Get-Control -Name BusyProgressBar
     ConnectADButton     = Get-Control -Name ConnectADButton
     ConnectEntraButton  = Get-Control -Name ConnectEntraButton
     ConnectExchangeButton = Get-Control -Name ConnectExchangeButton
@@ -165,6 +312,8 @@ function Set-BusyState {
         [Parameter(Mandatory)]
         [bool]$Busy,
 
+        [bool]$RefreshNavigationView = $true,
+
         [string]$Message = ''
     )
 
@@ -177,12 +326,24 @@ function Set-BusyState {
     }
 
     $controls.NavigationList.IsEnabled = $isEnabled
+    foreach ($controlName in @('ReportSearchBox', 'ReportStatusFilter', 'ReportRiskFilter', 'ShowPlannedReportsCheckBox')) {
+        if ($controls[$controlName]) {
+            $controls[$controlName].IsEnabled = $isEnabled
+        }
+    }
+
+    if ($controls.BusyIndicatorPanel) {
+        $controls.BusyIndicatorPanel.Visibility = if ($Busy) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
+    }
+    if ($controls.BusyStatusText) {
+        $controls.BusyStatusText.Text = if ($Message) { $Message } else { if ($Busy) { 'Working...' } else { 'Ready' } }
+    }
     $window.Cursor = if ($Busy) { [System.Windows.Input.Cursors]::Wait } else { $null }
     if ($Message) {
         $controls.LastRunText.Text = $Message
     }
 
-    if (-not $Busy) {
+    if (-not $Busy -and $RefreshNavigationView) {
         Update-NavigationView
     }
 }
@@ -325,54 +486,9 @@ function Get-SectionManagementRows {
 function Invoke-HealthCheck {
     [CmdletBinding()]
     param()
-
-    $paths = @(
-        @{ Name = 'Config'; Path = Join-Path $script:RootPath 'Config' }
-        @{ Name = 'Reports'; Path = Join-Path $script:RootPath 'Reports' }
-        @{ Name = 'Logs'; Path = Join-Path $script:RootPath 'Logs' }
-        @{ Name = 'Archive'; Path = Join-Path $script:RootPath 'Archive' }
-        @{ Name = 'Templates'; Path = Join-Path $script:RootPath 'Templates' }
-    )
-
-    $checks = New-Object System.Collections.Generic.List[object]
-    $checks.Add([pscustomobject]@{ Area = 'Runtime'; Check = 'PowerShell Version'; Status = $PSVersionTable.PSVersion.ToString(); Recommendation = if ($PSVersionTable.PSVersion.Major -eq 5) { 'OK for WPF GUI and RSAT modules.' } else { 'Windows PowerShell 5.1 is recommended for the WPF launcher.' } })
-    $checks.Add([pscustomobject]@{ Area = 'Runtime'; Check = 'STA Mode'; Status = [System.Threading.Thread]::CurrentThread.GetApartmentState().ToString(); Recommendation = 'WPF requires STA.' })
-    $checks.Add([pscustomobject]@{ Area = 'Runtime'; Check = 'TLS'; Status = [Net.ServicePointManager]::SecurityProtocol.ToString(); Recommendation = if (([Net.ServicePointManager]::SecurityProtocol -band [Net.SecurityProtocolType]::Tls12) -eq [Net.SecurityProtocolType]::Tls12) { 'OK' } else { 'Enable TLS 1.2 before PSGallery operations.' } })
-
-    foreach ($moduleName in @('ActiveDirectory', 'Microsoft.Graph.Authentication', 'Microsoft.Graph.Users', 'Microsoft.Graph.Groups', 'Microsoft.Graph.Identity.DirectoryManagement', 'ExchangeOnlineManagement', 'ImportExcel')) {
-        $installed = Test-HIRModuleInstalled -Name $moduleName
-        $checks.Add([pscustomobject]@{ Area = 'Module'; Check = $moduleName; Status = if ($installed) { 'Installed' } else { 'Missing' }; Recommendation = if ($installed) { 'OK' } else { 'Use the relevant Connect or Export button to install on demand.' } })
-    }
-
-    foreach ($pathInfo in $paths) {
-        $exists = Test-Path -LiteralPath $pathInfo.Path
-        $checks.Add([pscustomobject]@{ Area = 'Path'; Check = $pathInfo.Name; Status = if ($exists) { 'OK' } else { 'Missing' }; Recommendation = $pathInfo.Path })
-    }
-
-    foreach ($jsonFile in @('appsettings.json', 'connections.json', 'reports.json', 'planned-reports.json')) {
-        $path = Join-Path $script:RootPath "Config\$jsonFile"
-        try {
-            Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json | Out-Null
-            $checks.Add([pscustomobject]@{ Area = 'Config'; Check = $jsonFile; Status = 'Valid JSON'; Recommendation = 'OK' })
-        }
-        catch {
-            $checks.Add([pscustomobject]@{ Area = 'Config'; Check = $jsonFile; Status = 'Invalid'; Recommendation = $_.Exception.Message })
-        }
-    }
-
-    $implemented = @($script:ReportCatalog | Where-Object { $_.Implemented -eq $true }).Count
-    $planned = @($script:ReportCatalog | Where-Object { $_.Implemented -ne $true }).Count
-    $checks.Add([pscustomobject]@{ Area = 'Catalog'; Check = 'Reports'; Status = "$($script:ReportCatalog.Count) total"; Recommendation = "$implemented implemented, $planned planned." })
-    $checks.Add([pscustomobject]@{ Area = 'Catalog'; Check = 'Planned report configuration'; Status = if ($script:PlannedReportSettings.ShowPlannedReports) { 'Visible' } else { 'Hidden' }; Recommendation = 'Edit Config\planned-reports.json to show, hide or annotate planned reports.' })
-
-    $missingFunctions = @($script:ReportCatalog | Where-Object { $_.Implemented -eq $true } | Where-Object { -not (Get-Command -Name $_.Function -ErrorAction SilentlyContinue) })
-    $checks.Add([pscustomobject]@{ Area = 'Catalog'; Check = 'Implemented functions'; Status = if ($missingFunctions.Count -eq 0) { 'OK' } else { 'Missing functions' }; Recommendation = if ($missingFunctions.Count -eq 0) { 'All implemented reports resolve to a function.' } else { ($missingFunctions.Function -join ', ') } })
-
-    $checks.Add([pscustomobject]@{ Area = 'Suggestion'; Check = 'Startup folder'; Status = 'Portable'; Recommendation = "Current root: $script:RootPath" })
-    $checks.Add([pscustomobject]@{ Area = 'Suggestion'; Check = 'Graph reports'; Status = $controls.EntraStatusText.Text; Recommendation = 'Connect Entra ID before running Graph user, group or role reports.' })
-    $checks.Add([pscustomobject]@{ Area = 'Suggestion'; Check = 'Hybrid reports'; Status = ('{0} | {1}' -f $controls.ADStatusText.Text, $controls.ExchangeStatusText.Text); Recommendation = 'Hybrid reports need AD plus Exchange Online context.' })
-
-    Set-Results -Data @($checks) -ReportName 'Health Check'
+    $checks = @(Get-HIRHealthCheckData -AdStatusText $controls.ADStatusText.Text -ExchangeStatusText $controls.ExchangeStatusText.Text)
+    Set-Results -Data $checks -ReportName 'Health Check'
+    Update-HealthCheckVisual -Checks $checks
     Add-UiLog "Health check completed. Checks: $($checks.Count)"
 }
 
@@ -1644,7 +1760,7 @@ $controls.ConnectADButton.Add_Click({
         Show-HIRMessageBox -Message $_.Exception.Message -Title 'AD connection error' -Image Error | Out-Null
     }
     finally {
-        Set-BusyState -Busy $false
+        Set-BusyState -Busy $false -RefreshNavigationView $false
     }
 })
 
@@ -1774,6 +1890,10 @@ $window.Add_Closed({
 
 Write-HIRLog -Module GUI -Action Startup -Level INFO -Message 'Application started.'
 Add-UiLog "Application ready. Catalog loaded: $(@(Get-FlatReportItems -InputObject $script:ReportCatalog).Count) reports. Connect to the required services, select a report, then run it."
+if ($HealthCheck) {
+    Select-NavigationSection -Section 'Debug / Health'
+    Invoke-HealthCheck
+}
 try {
     $window.ShowDialog() | Out-Null
 }

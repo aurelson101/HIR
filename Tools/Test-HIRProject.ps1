@@ -1,7 +1,7 @@
 #requires -Version 5.1
 [CmdletBinding()]
 param(
-    [string]$RootPath = (Split-Path -Parent $PSScriptRoot)
+    [string]$RootPath = $(if ($PSScriptRoot) { Split-Path -Parent $PSScriptRoot } else { (Get-Location).Path })
 )
 
 Set-StrictMode -Version Latest
@@ -47,7 +47,7 @@ function Test-HIRProject {
         Add-CheckResult -Results $results -Area 'Layout' -Check $folder -Status $(if (Test-Path -LiteralPath $path) { 'OK' } else { 'Error' }) -Details $path
     }
 
-    $psFiles = Get-ChildItem -LiteralPath $resolvedRoot -Recurse -Include *.ps1,*.psm1 -File
+    $psFiles = Get-ChildItem -LiteralPath $resolvedRoot -Recurse -File | Where-Object { $_.Extension -in @('.ps1', '.psm1') }
     foreach ($file in $psFiles) {
         $tokens = $null
         $errors = $null

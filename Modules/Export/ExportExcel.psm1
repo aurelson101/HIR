@@ -16,6 +16,8 @@ function Export-HIRReportExcel {
     Invoke-HIRSafeCommand -Module Export -Action 'Excel export' -ScriptBlock {
         Assert-HIRModule -Name ImportExcel
         Import-Module ImportExcel -ErrorAction Stop
+        $appSettings = Get-HIRAppSettings -RootPath $RootPath
+        $toolVersion = if ($appSettings.PSObject.Properties.Name -contains 'Version') { [string]$appSettings.Version } else { 'Unknown' }
 
         $reportDirectory = Join-Path $RootPath 'Reports'
         if (-not (Test-Path -LiteralPath $reportDirectory)) { New-Item -ItemType Directory -Path $reportDirectory -Force | Out-Null }
@@ -25,6 +27,7 @@ function Export-HIRReportExcel {
 
         $metadata = @(
             [pscustomobject]@{ Property = 'ReportName'; Value = $ReportName }
+            [pscustomobject]@{ Property = 'ToolVersion'; Value = $toolVersion }
             [pscustomobject]@{ Property = 'ExecutionDate'; Value = (Get-Date).ToString('s') }
             [pscustomobject]@{ Property = 'ResultCount'; Value = @($Data).Count }
         )

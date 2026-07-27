@@ -16,6 +16,8 @@ function Export-HIRReportCsv {
     )
 
     Invoke-HIRSafeCommand -Module Export -Action 'CSV export' -ScriptBlock {
+        $appSettings = Get-HIRAppSettings -RootPath $RootPath
+        $toolVersion = if ($appSettings.PSObject.Properties.Name -contains 'Version') { [string]$appSettings.Version } else { 'Unknown' }
         $reportDirectory = Join-Path $RootPath 'Reports'
         if (-not (Test-Path -LiteralPath $reportDirectory)) { New-Item -ItemType Directory -Path $reportDirectory -Force | Out-Null }
         $safeName = New-HIRSafeFileName -Name $ReportName
@@ -24,6 +26,7 @@ function Export-HIRReportCsv {
 
         $metadata = @(
             [pscustomobject]@{ Metadata = 'ReportName'; Value = $ReportName }
+            [pscustomobject]@{ Metadata = 'ToolVersion'; Value = $toolVersion }
             [pscustomobject]@{ Metadata = 'ExecutionDate'; Value = (Get-Date).ToString('s') }
             [pscustomobject]@{ Metadata = 'ResultCount'; Value = @($Data).Count }
         )

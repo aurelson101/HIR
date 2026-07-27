@@ -14,6 +14,8 @@ function Export-HIRReportHtml {
     )
 
     Invoke-HIRSafeCommand -Module Export -Action 'HTML export' -ScriptBlock {
+        $appSettings = Get-HIRAppSettings -RootPath $RootPath
+        $toolVersion = if ($appSettings.PSObject.Properties.Name -contains 'Version') { [string]$appSettings.Version } else { 'Unknown' }
         $reportDirectory = Join-Path $RootPath 'Reports'
         if (-not (Test-Path -LiteralPath $reportDirectory)) { New-Item -ItemType Directory -Path $reportDirectory -Force | Out-Null }
         $safeName = New-HIRSafeFileName -Name $ReportName
@@ -32,6 +34,7 @@ function Export-HIRReportHtml {
         $template = Get-Content -LiteralPath $templatePath -Raw -Encoding UTF8
         $html = $template.Replace('{{ReportName}}', [System.Net.WebUtility]::HtmlEncode($ReportName)).
             Replace('{{ToolName}}', [System.Net.WebUtility]::HtmlEncode('Hybrid Identity Reporter')).
+            Replace('{{ToolVersion}}', [System.Net.WebUtility]::HtmlEncode($toolVersion)).
             Replace('{{ExecutionDate}}', [System.Net.WebUtility]::HtmlEncode((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))).
             Replace('{{ResultCount}}', [System.Net.WebUtility]::HtmlEncode($resultCount.ToString())).
             Replace('{{ComputerName}}', [System.Net.WebUtility]::HtmlEncode($env:COMPUTERNAME)).

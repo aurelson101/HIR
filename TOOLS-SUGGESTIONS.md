@@ -17,10 +17,11 @@ Ce document liste les améliorations recommandées pour industrialiser **Hybrid 
 | Sujet | Recommandation | Bénéfice |
 | --- | --- | --- |
 | Signature | Signer les scripts PowerShell avec un certificat interne. | Compatible avec `AllSigned` et améliore la traçabilité. |
-| Packaging | Fournir une archive versionnée `Hybrid-Identity-Reporter-x.y.z.zip`. | Facilite le déploiement sur `DC05` ou autre serveur d'administration. |
+| Packaging | Fournir une archive versionnée `Hybrid-Identity-Reporter-x.y.z.zip`. | Facilite le déploiement sur un serveur d'administration ou un poste d'audit. |
 | Versioning | Afficher la version dans le README, l'interface et les exports. | Simplifie le support et les comparaisons de résultats. |
 | Raccourci | Implémenté : `launch.bat` lance `Start-Hybrid-Identity-Reporter.ps1` en STA depuis le dossier courant. | Réduit les erreurs de lancement. |
-| Dossier dédié | Exécuter depuis `C:\dev\repportAD` ou un chemin standard validé. | Stabilise les chemins d'exploitation. |
+| Dossier dédié | Exécuter depuis la racine du projet ou un chemin standard validé. | Stabilise les chemins d'exploitation. |
+| Mode console | Implémenté : `Start-Hybrid-Identity-Reporter.ps1 -Console` affiche un résumé du projet et le health check sans ouvrir la GUI. | Permet une validation rapide en terminal ou en CI. |
 
 ## Priorité 3 - Sécurité
 
@@ -41,6 +42,8 @@ Ce document liste les améliorations recommandées pour industrialiser **Hybrid 
 | Configuration planned | Implémenté : `Config\planned-reports.json` pilote la visibilité et les métadonnées des rapports prévus. | Permet d'adapter la roadmap sans modifier le catalogue principal. |
 | Détails rapport | Ajouter un panneau de détail avec prérequis et description du rapport sélectionné. | Aide l'utilisateur avant exécution. |
 | Export rapide | Implémenté : bouton `Open Last Export`. | Accès direct au dernier fichier généré. |
+| Health check visuel | Implémenté : synthèse dédiée et coloration des statuts dans le résultat du health check. | Fait ressortir plus vite les erreurs et avertissements. |
+| Indicateur de charge | Implémenté : bandeau de chargement et barre de progression pendant les actions longues. | Rend l'interface plus lisible pendant les opérations lourdes. |
 | Thème | Conserver un thème clair/sobre adapté aux outils d'administration. | Lisibilité en exploitation. |
 
 ## Priorité 5 - CI/CD et qualité
