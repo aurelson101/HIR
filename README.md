@@ -90,6 +90,8 @@ Additional modes:
 - `-Console` prints a project summary and the health check in the terminal.
 - `-HealthCheck` opens the GUI and runs the health check automatically after startup.
 
+In console mode, missing optional modules are reported as warnings so the command stays useful in lean environments.
+
 If the script is started from a non-STA PowerShell session, it relaunches itself with STA because WPF requires it.
 
 The project is portable. Paths are resolved from the script location, so the repository can be copied to another admin workstation without editing hardcoded paths.

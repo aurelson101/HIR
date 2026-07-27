@@ -127,14 +127,22 @@ function Get-HIRHealthCheckData {
 }
 
 function Get-HIRHealthCheckSeverity {
-    param([AllowNull()][string]$Status)
+    param(
+        [AllowNull()][string]$Status,
+        [AllowNull()][string]$Area
+    )
 
     if ([string]::IsNullOrWhiteSpace($Status)) {
         return 'Info'
     }
 
+    if ($Area -eq 'Module' -and $Status -eq 'Missing') {
+        return 'Warning'
+    }
+
     switch -Regex ($Status) {
-        '(Missing|Invalid|Error)' { return 'Error' }
+        '(Invalid|Error)' { return 'Error' }
+        '(Missing)' { return 'Error' }
         '(Hidden|Disconnected|Warning)' { return 'Warning' }
         '(OK|Installed|Visible|Valid JSON|Connected|Portable)' { return 'OK' }
         default { return 'Info' }
@@ -153,7 +161,7 @@ function Update-HealthCheckVisual {
     $errorCount = 0
 
     foreach ($check in @($Checks)) {
-        switch (Get-HIRHealthCheckSeverity -Status ([string]$check.Status)) {
+        switch (Get-HIRHealthCheckSeverity -Status ([string]$check.Status) -Area ([string]$check.Area)) {
             'OK' { $okCount++ }
             'Warning' { $warningCount++ }
             'Error' { $errorCount++ }
@@ -182,9 +190,9 @@ function Invoke-HIRConsoleMode {
 
     $checks = @(Get-HIRHealthCheckData)
     $summary = [pscustomobject]@{
-        OK       = @($checks | Where-Object { (Get-HIRHealthCheckSeverity -Status ([string]$_.Status)) -eq 'OK' }).Count
-        Warning  = @($checks | Where-Object { (Get-HIRHealthCheckSeverity -Status ([string]$_.Status)) -eq 'Warning' }).Count
-        Error    = @($checks | Where-Object { (Get-HIRHealthCheckSeverity -Status ([string]$_.Status)) -eq 'Error' }).Count
+        OK       = @($checks | Where-Object { (Get-HIRHealthCheckSeverity -Status ([string]$_.Status) -Area ([string]$_.Area)) -eq 'OK' }).Count
+        Warning  = @($checks | Where-Object { (Get-HIRHealthCheckSeverity -Status ([string]$_.Status) -Area ([string]$_.Area)) -eq 'Warning' }).Count
+        Error    = @($checks | Where-Object { (Get-HIRHealthCheckSeverity -Status ([string]$_.Status) -Area ([string]$_.Area)) -eq 'Error' }).Count
         Total    = $checks.Count
     }
 
@@ -196,6 +204,11 @@ function Invoke-HIRConsoleMode {
     if ($summary.Error -gt 0) {
         Write-Host 'Console health check completed with errors.'
         return 1
+    }
+
+    if ($summary.Warning -gt 0) {
+        Write-Host 'Console health check completed with warnings.'
+        return 0
     }
 
     Write-Host 'Console health check completed successfully.'
