@@ -11,13 +11,6 @@
                                "Note":  "Planned refinement of Password Never Expires, focused only on privileged AD accounts."
                            },
                            {
-                               "Id":  "AD.ExtendedPrivilegedGroupsMembers",
-                               "Visible":  true,
-                               "Priority":  "High",
-                               "RiskLevel":  "Critical",
-                               "Note":  "Planned AD privileged groups report. Built-in groups must be resolved by SID/RID to support localized domains."
-                           },
-                           {
                                "Id":  "Exchange.FullAccessMailboxPermissions",
                                "Visible":  true,
                                "Priority":  "High",

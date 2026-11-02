@@ -378,10 +378,10 @@
     "Category": "Security / IAM",
     "ReviewGroup": "Privileged Users Review",
     "Function": "Get-HIRADExtendedPrivilegedGroupsMembers",
-    "Implemented": false,
+    "Implemented": true,
     "Priority": "High",
     "RiskLevel": "Critical",
-    "Note": "Planned review for Enterprise Admins, Schema Admins, Operators and other privileged groups."
+    "Note": "Recursive members of Enterprise/Schema Admins, Administrators, Operators and other privileged groups (resolved by SID)."
   },
   {
     "Id": "Hybrid.ADObjectsWithoutEntraMatch",
@@ -429,10 +429,10 @@
     "Category": "Active Directory",
     "ReviewGroup": "Groups & Computers Review",
     "Function": "Get-HIRADGroupsWithoutManagedBy",
-    "Implemented": false,
+    "Implemented": true,
     "Priority": "Medium",
     "RiskLevel": "Medium",
-    "Note": "Planned governance report for AD groups without managedBy."
+    "Note": "AD groups without a managedBy owner, excluding built-in groups."
   },
   {
     "Id": "Entra.DisabledLicensedUsers",

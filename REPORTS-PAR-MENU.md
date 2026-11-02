@@ -60,14 +60,14 @@ Les rapports sont regroupes en sous-groupes de revue dans le menu (Users Review,
 | Admin Accounts Password Never Expires | Disponible | Critical | High | Find enabled adminCount accounts with non-expiring passwords. |
 | AdminCount = 1 Users | Disponible | High | High | Find accounts protected by AdminSDHolder history or privileged membership. |
 | Domain Admins Members | Disponible | Critical | High | Review recursive Domain Admins membership. |
-| Extended Privileged AD Groups Members | Prevu | Critical | High | Planned review for Enterprise Admins, Schema Admins, Operators and other privileged groups. |
+| Extended Privileged AD Groups Members | Disponible | Critical | High | Recursive members of Enterprise/Schema Admins, Administrators, Operators and other privileged groups (resolved by SID). |
 | Password Never Expires | Disponible | High | High | Identify enabled accounts with passwords that never expire. |
 
 ### Groups & Computers Review
 
 | Rapport | Statut | Risque | Priorite | Note |
 | --- | --- | --- | --- | --- |
-| AD Groups Without managedBy | Prevu | Medium | Medium | Planned governance report for AD groups without managedBy. |
+| AD Groups Without managedBy | Disponible | Medium | Medium | AD groups without a managedBy owner, excluding built-in groups. |
 | Empty AD Groups | Disponible | Low | Low | Find groups without members for cleanup review. |
 | Inactive Computers over 90 days | Disponible | Medium | Medium | Find stale computer objects for inventory cleanup. |
 
@@ -109,7 +109,7 @@ Les rapports sont regroupes en sous-groupes de revue dans le menu (Users Review,
 | Cloud-only Entra Admins | Prevu | High | Medium | Planned cross-check between Cloud-only Entra users and Entra admin role membership. |
 | Domain Admins Members | Disponible | Critical | High | Review recursive Domain Admins membership. |
 | Entra Admin Role Members | Disponible | Critical | High | Review privileged Entra role membership. |
-| Extended Privileged AD Groups Members | Prevu | Critical | High | Planned review for Enterprise Admins, Schema Admins, Operators and other privileged groups. |
+| Extended Privileged AD Groups Members | Disponible | Critical | High | Recursive members of Enterprise/Schema Admins, Administrators, Operators and other privileged groups (resolved by SID). |
 | Guest Users in Admin Roles | Prevu | Critical | Medium | Planned cross-check between Guest Entra users and Entra admin role membership. |
 | Password Never Expires | Disponible | High | High | Identify enabled accounts with passwords that never expire. |
 | Privileged Entra role risk view | Prevu | Critical | High | Planned risk view extending Entra Admin Role Members with critical role, guest account and cloud-only admin signals. |

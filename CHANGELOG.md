@@ -6,6 +6,7 @@
 
 - Menu Active Directory : sous-groupes Users Review, Privileged Users Review et Groups & Computers Review (champ ReviewGroup du catalogue).
 - Rapports Expired or Never Logged On AD Users et Old PasswordLastSet Users (365 jours).
+- Rapports Extended Privileged AD Groups Members (groupes résolus par SID) et AD Groups Without managedBy.
 
 ### Fixed
 
