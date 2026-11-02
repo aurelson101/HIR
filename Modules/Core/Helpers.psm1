@@ -238,7 +238,7 @@ function Remove-HIRExpiredFiles {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)][string]$Path,
-        [ValidateRange(1, 3650)][int]$RetainDays
+        [Parameter(Mandatory)][ValidateRange(1, 3650)][int]$RetainDays
     )
 
     if (-not (Test-Path -LiteralPath $Path)) { return 0 }
@@ -264,8 +264,29 @@ function Protect-HIRReportsDirectory {
     $acl.SetAccessRuleProtection($true, $false)
     $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($identity, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
     $acl.SetAccessRule($rule)
+    # Keep SYSTEM and local Administrators so backups and administrators are not locked out.
+    foreach ($sid in 'S-1-5-18', 'S-1-5-32-544') {
+        $principal = New-Object System.Security.Principal.SecurityIdentifier($sid)
+        $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($principal, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')))
+    }
     Set-Acl -LiteralPath $path -AclObject $acl
     return $true
 }
 
-Export-ModuleMember -Function Enable-HIRTls12, Assert-HIRModule, Test-HIRModuleInstalled, Get-HIRObjectPropertyValue, Install-HIRPowerShellGalleryModule, Install-HIRActiveDirectoryTools, New-HIRSafeFileName, Copy-HIRExistingReportsToArchive, Remove-HIRExpiredFiles, Protect-HIRReportsDirectory
+function ConvertTo-HIRSpreadsheetSafeData {
+    [CmdletBinding()]
+    param([AllowEmptyCollection()][object[]]$Data)
+
+    # Neutralize spreadsheet formula injection: text starting with = + - @ TAB CR is prefixed with an apostrophe.
+    foreach ($row in @($Data)) {
+        if ($null -eq $row) { continue }
+        $copy = [ordered]@{}
+        foreach ($property in $row.PSObject.Properties) {
+            $value = $property.Value
+            if ($value -is [string] -and $value -match '^[=+\-@\t\r]') { $value = "'" + $value }
+            $copy[$property.Name] = $value
+        }
+        [pscustomobject]$copy
+    }
+}
+Export-ModuleMember -Function ConvertTo-HIRSpreadsheetSafeData, Enable-HIRTls12, Assert-HIRModule, Test-HIRModuleInstalled, Get-HIRObjectPropertyValue, Install-HIRPowerShellGalleryModule, Install-HIRActiveDirectoryTools, New-HIRSafeFileName, Copy-HIRExistingReportsToArchive, Remove-HIRExpiredFiles, Protect-HIRReportsDirectory

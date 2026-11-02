@@ -42,13 +42,18 @@ Ce document est genere a partir de Config/reports.json et liste les rapports dis
 | Rapport | Statut | Risque | Priorite | Note |
 | --- | --- | --- | --- | --- |
 | AD Groups Without managedBy | Prevu | Medium | Medium | Planned governance report for AD groups without managedBy. |
-| Disabled AD Users | Disponible | High | High | Review disabled AD users and mailbox-related attributes for lifecycle cleanup. |
 | Empty AD Groups | Disponible | Low | Low | Find groups without members for cleanup review. |
-| Expired or Never Logged On AD Users | Prevu | High | High | Planned report for expired accounts and users that never logged on. |
-| Inactive AD Users over 90 days | Disponible | Medium | High | Find stale user accounts based on inactivity threshold. |
 | Inactive Computers over 90 days | Disponible | Medium | Medium | Find stale computer objects for inventory cleanup. |
+
+## Users Review
+
+| Rapport | Statut | Risque | Priorite | Note |
+| --- | --- | --- | --- | --- |
+| Disabled AD Users | Disponible | High | High | Review disabled AD users and mailbox-related attributes for lifecycle cleanup. |
+| Expired or Never Logged On AD Users | Disponible | High | High | Enabled accounts that are expired or have never logged on. |
+| Inactive AD Users over 90 days | Disponible | Medium | High | Find stale user accounts based on inactivity threshold. |
 | Locked AD Users | Disponible | Medium | Medium | Review locked accounts for helpdesk and security signals. |
-| Old PasswordLastSet Users | Prevu | Medium | High | Planned report for accounts with very old PasswordLastSet values. |
+| Old PasswordLastSet Users | Disponible | Medium | High | Enabled accounts whose password has not been changed for over 365 days. |
 | Users Without Email | Disponible | Low | Low | Improve AD data quality for mail-enabled identity workflows. |
 | Users Without Manager | Disponible | Low | Low | Improve directory governance and ownership data. |
 

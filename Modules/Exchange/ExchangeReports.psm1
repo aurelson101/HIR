@@ -49,11 +49,18 @@ function Get-HIRExchangeFullAccessMailboxPermissions {
     param()
 
     Invoke-HIRSafeCommand -Module Exchange -Action 'Full Access mailbox permissions report' -ScriptBlock {
-        foreach ($mailbox in Get-EXOMailbox -ResultSize Unlimited -Properties PrimarySmtpAddress -ErrorAction Stop) {
-            Get-EXOMailboxPermission -Identity $mailbox.UserPrincipalName -ErrorAction Stop |
-                Where-Object { -not $_.IsInherited -and $_.User -notlike 'NT AUTHORITY\\SELF' -and $_.AccessRights -contains 'FullAccess' } |
+        $mailboxes = @(Get-EXOMailbox -ResultSize Unlimited -Properties PrimarySmtpAddress -ErrorAction Stop)
+        $index = 0
+        foreach ($mailbox in $mailboxes) {
+            $index++
+            if ($index % 25 -eq 1 -or $index -eq $mailboxes.Count) {
+                Write-Progress -Activity 'Full Access permissions' -Status ('{0}/{1} mailboxes' -f $index, $mailboxes.Count) -PercentComplete ([int](100 * $index / [Math]::Max(1, $mailboxes.Count)))
+            }
+            & { try { Get-EXOMailboxPermission -Identity $mailbox.ExternalDirectoryObjectId -ErrorAction Stop } catch { Write-HIRLog -Module Exchange -Action 'Full Access mailbox permissions report' -Level WARNING -Message ('Skipped {0}: {1}' -f $mailbox.UserPrincipalName, $_.Exception.Message); return } } |
+                Where-Object { -not $_.IsInherited -and $_.User -notlike 'NT AUTHORITY\SELF' -and $_.AccessRights -contains 'FullAccess' } |
                 Select-Object @{Name = 'Mailbox'; Expression = { $mailbox.PrimarySmtpAddress }}, User, AccessRights, IsInherited, Deny
         }
+        Write-Progress -Activity 'Full Access permissions' -Completed
     }
 }
 
@@ -62,15 +69,20 @@ function Get-HIRExchangeSendAsPermissions {
     param()
 
     Invoke-HIRSafeCommand -Module Exchange -Action 'Send As permissions report' -ScriptBlock {
-        Get-EXORecipient -ResultSize Unlimited -ErrorAction Stop | ForEach-Object {
-            $recipient = $_
-            Get-RecipientPermission -Identity $recipient.Identity -ErrorAction Stop |
-                Where-Object { -not $_.IsInherited -and $_.Trustee -notlike 'NT AUTHORITY\\SELF' -and $_.AccessRights -contains 'SendAs' } |
+        $recipients = @(Get-EXORecipient -ResultSize Unlimited -Properties ExternalDirectoryObjectId, PrimarySmtpAddress -ErrorAction Stop)
+        $index = 0
+        foreach ($recipient in $recipients) {
+            $index++
+            if ($index % 25 -eq 1 -or $index -eq $recipients.Count) {
+                Write-Progress -Activity 'Send As permissions' -Status ('{0}/{1} recipients' -f $index, $recipients.Count) -PercentComplete ([int](100 * $index / [Math]::Max(1, $recipients.Count)))
+            }
+            & { try { Get-EXORecipientPermission -Identity $recipient.ExternalDirectoryObjectId -ErrorAction Stop } catch { Write-HIRLog -Module Exchange -Action 'Send As permissions report' -Level WARNING -Message ('Skipped {0}: {1}' -f $recipient.PrimarySmtpAddress, $_.Exception.Message); return } } |
+                Where-Object { -not $_.IsInherited -and $_.Trustee -notlike 'NT AUTHORITY\SELF' -and $_.AccessRights -contains 'SendAs' } |
                 Select-Object @{Name = 'Recipient'; Expression = { $recipient.PrimarySmtpAddress }}, Trustee, AccessRights, IsInherited
         }
+        Write-Progress -Activity 'Send As permissions' -Completed
     }
 }
-
 function Get-HIRExchangeSendOnBehalfPermissions {
     [CmdletBinding()]
     param()

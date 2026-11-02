@@ -57,10 +57,19 @@ function Get-HIRADEmptyGroups {
     Invoke-HIRSafeCommand -Module AD -Action 'Empty groups report' -ScriptBlock {
         Assert-HIRModule -Name ActiveDirectory
         Import-Module ActiveDirectory -ErrorAction Stop
-        $params = @{ Filter = '*'; Properties = @('member'); ErrorAction = 'Stop' }
+        $params = @{ Filter = '*'; Properties = @('member', 'SID'); ErrorAction = 'Stop' }
         if ($SearchBase) { $params.SearchBase = $SearchBase }
         if ($Server) { $params.Server = $Server }
-        Get-ADGroup @params | Where-Object { -not (Get-HIRObjectPropertyValue -InputObject $_ -Name 'member') } | Select-Object `
+        $userParams = @{ ErrorAction = 'Stop'; ResultSetSize = 1 }
+        if ($Server) { $userParams.Server = $Server }
+        # A group with no 'member' values can still hold users through primaryGroupID (e.g. Domain Users).
+        Get-ADGroup @params | Where-Object {
+            if (Get-HIRObjectPropertyValue -InputObject $_ -Name 'member') { return $false }
+            $sid = Get-HIRObjectPropertyValue -InputObject $_ -Name 'SID'
+            if (-not $sid) { return $true }
+            $rid = ([string]$sid.Value).Split('-')[-1]
+            -not (Get-ADObject -LDAPFilter "(primaryGroupID=$rid)" @userParams)
+        } | Select-Object `
             @{Name = 'Name'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'Name' }},
             @{Name = 'SamAccountName'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'SamAccountName' }},
             @{Name = 'GroupCategory'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'GroupCategory' }},

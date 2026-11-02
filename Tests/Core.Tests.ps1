@@ -72,3 +72,32 @@ Describe 'HIR run history' {
         @(Compare-HIRReportExports -RootPath $testRoot -ReportId R1).Count | Should -Be 2
     }
 }
+
+Describe 'Export and history robustness' {
+    BeforeAll {
+        $script:tmpRoot = Join-Path ([IO.Path]::GetTempPath()) ('hir-' + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path (Join-Path $script:tmpRoot 'Config'), (Join-Path $script:tmpRoot 'Templates') -Force | Out-Null
+        Copy-Item (Join-Path (Split-Path -Parent $PSScriptRoot) 'Config\*') (Join-Path $script:tmpRoot 'Config')
+        Copy-Item (Join-Path (Split-Path -Parent $PSScriptRoot) 'Templates\*') (Join-Path $script:tmpRoot 'Templates')
+        Initialize-HIRLogging -RootPath $script:tmpRoot
+    }
+    AfterAll { Remove-Item -LiteralPath $script:tmpRoot -Recurse -Force -ErrorAction SilentlyContinue }
+
+    It 'exports and registers empty result sets' {
+        { Export-HIRReportCsv -ReportName 'Empty' -Data @() -RootPath $script:tmpRoot } | Should -Not -Throw
+        { Export-HIRReportHtml -ReportName 'Empty' -Data @() -RootPath $script:tmpRoot } | Should -Not -Throw
+        { Export-HIRReportJson -ReportName 'Empty' -Data @() -RootPath $script:tmpRoot } | Should -Not -Throw
+        { Register-HIRRun -RootPath $script:tmpRoot -ReportId 'X' -ReportName 'X' -Data @() -StartedAt (Get-Date) } | Should -Not -Throw
+    }
+
+    It 'neutralizes spreadsheet formulas in CSV exports' {
+        $path = Export-HIRReportCsv -ReportName 'Formula' -Data @([pscustomobject]@{ Name = '=cmd|calc'; Count = -5 }) -RootPath $script:tmpRoot
+        $content = Get-Content -LiteralPath $path -Raw
+        $content | Should -Match "'=cmd\|calc"
+        $content | Should -Match '-5'
+    }
+
+    It 'requires an explicit retention period' {
+        (Get-Command Remove-HIRExpiredFiles).Parameters['RetainDays'].Attributes.Mandatory | Should -Contain $true
+    }
+}

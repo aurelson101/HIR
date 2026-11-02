@@ -2,7 +2,7 @@
   {
     "Id": "AD.DisabledUsers",
     "DisplayName": "Disabled AD Users",
-    "Category": "Active Directory",
+    "Category": "Users Review",
     "Function": "Get-HIRADDisabledUsers",
     "Implemented": true,
     "Priority": "High",
@@ -52,7 +52,7 @@
   {
     "Id": "AD.LockedUsers",
     "DisplayName": "Locked AD Users",
-    "Category": "Active Directory",
+    "Category": "Users Review",
     "Function": "Get-HIRADLockedUsers",
     "Implemented": true,
     "Priority": "Medium",
@@ -62,7 +62,7 @@
   {
     "Id": "AD.InactiveUsers90Days",
     "DisplayName": "Inactive AD Users over 90 days",
-    "Category": "Active Directory",
+    "Category": "Users Review",
     "Function": "Get-HIRADInactiveUsers",
     "Implemented": true,
     "Priority": "High",
@@ -102,7 +102,7 @@
   {
     "Id": "AD.UsersWithoutEmail",
     "DisplayName": "Users Without Email",
-    "Category": "Active Directory",
+    "Category": "Users Review",
     "Function": "Get-HIRADUsersWithoutEmail",
     "Implemented": true,
     "Priority": "Low",
@@ -112,7 +112,7 @@
   {
     "Id": "AD.UsersWithoutManager",
     "DisplayName": "Users Without Manager",
-    "Category": "Active Directory",
+    "Category": "Users Review",
     "Function": "Get-HIRADUsersWithoutManager",
     "Implemented": true,
     "Priority": "Low",
@@ -332,22 +332,22 @@
   {
     "Id": "AD.ExpiredOrNeverLoggedOnUsers",
     "DisplayName": "Expired or Never Logged On AD Users",
-    "Category": "Active Directory",
+    "Category": "Users Review",
     "Function": "Get-HIRADExpiredOrNeverLoggedOnUsers",
-    "Implemented": false,
+    "Implemented": true,
     "Priority": "High",
     "RiskLevel": "High",
-    "Note": "Planned report for expired accounts and users that never logged on."
+    "Note": "Enabled accounts that are expired or have never logged on."
   },
   {
     "Id": "AD.OldPasswordLastSet",
     "DisplayName": "Old PasswordLastSet Users",
-    "Category": "Active Directory",
+    "Category": "Users Review",
     "Function": "Get-HIRADOldPasswordLastSetUsers",
-    "Implemented": false,
+    "Implemented": true,
     "Priority": "High",
     "RiskLevel": "Medium",
-    "Note": "Planned report for accounts with very old PasswordLastSet values."
+    "Note": "Enabled accounts whose password has not been changed for over 365 days."
   },
   {
     "Id": "AD.AdminPasswordNeverExpires",

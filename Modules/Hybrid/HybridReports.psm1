@@ -13,7 +13,7 @@ function Get-HIRHybridDisabledADUsersVisibleInGAL {
 
         $adParams = @{
             Filter      = 'Enabled -eq $false'
-            Properties  = @('mail', 'mailNickname', 'proxyAddresses', 'msExchHideFromAddressLists', 'userPrincipalName')
+            Properties  = @('DisplayName', 'mail', 'mailNickname', 'proxyAddresses', 'msExchHideFromAddressLists', 'userPrincipalName')
             ErrorAction = 'Stop'
         }
         if ($SearchBase) { $adParams.SearchBase = $SearchBase }
@@ -82,7 +82,7 @@ function Get-HIRHybridADUsersMissingMailNickname {
     Invoke-HIRSafeCommand -Module Hybrid -Action 'AD users missing mailNickname' -ScriptBlock {
         Assert-HIRModule -Name ActiveDirectory
         Import-Module ActiveDirectory -ErrorAction Stop
-        $params = @{ LDAPFilter = '(&(mail=*)(!(mailNickname=*)))'; Properties = @('mail', 'mailNickname', 'userPrincipalName'); ErrorAction = 'Stop' }
+        $params = @{ LDAPFilter = '(&(mail=*)(!(mailNickname=*)))'; Properties = @('DisplayName', 'mail', 'mailNickname', 'userPrincipalName'); ErrorAction = 'Stop' }
         if ($SearchBase) { $params.SearchBase = $SearchBase }
         if ($Server) { $params.Server = $Server }
         Get-ADUser @params | Select-Object `
@@ -101,7 +101,7 @@ function Get-HIRHybridADUsersMissingProxyAddresses {
     Invoke-HIRSafeCommand -Module Hybrid -Action 'AD users missing proxyAddresses' -ScriptBlock {
         Assert-HIRModule -Name ActiveDirectory
         Import-Module ActiveDirectory -ErrorAction Stop
-        $params = @{ LDAPFilter = '(&(mail=*)(!(proxyAddresses=*)))'; Properties = @('mail', 'proxyAddresses', 'userPrincipalName'); ErrorAction = 'Stop' }
+        $params = @{ LDAPFilter = '(&(mail=*)(!(proxyAddresses=*)))'; Properties = @('DisplayName', 'mail', 'proxyAddresses', 'userPrincipalName'); ErrorAction = 'Stop' }
         if ($SearchBase) { $params.SearchBase = $SearchBase }
         if ($Server) { $params.Server = $Server }
         Get-ADUser @params | Select-Object `

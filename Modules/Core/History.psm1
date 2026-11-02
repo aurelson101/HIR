@@ -15,7 +15,7 @@ function Register-HIRRun {
         [Parameter(Mandatory)][string]$RootPath,
         [Parameter(Mandatory)][string]$ReportId,
         [Parameter(Mandatory)][string]$ReportName,
-        [Parameter(Mandatory)][object[]]$Data,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Data,
         [Parameter(Mandatory)][datetime]$StartedAt,
         [ValidateSet('Completed', 'Error', 'Cancelled')][string]$Status = 'Completed',
         [string]$RiskLevel = 'Unknown',
@@ -75,16 +75,17 @@ function Compare-HIRReportExports {
     $previous = @(Get-Content -LiteralPath (Join-Path $historyPath $runs[1].SnapshotFile) -Raw -Encoding UTF8 | ConvertFrom-Json)
     $currentJson = @($current | ForEach-Object { $_ | ConvertTo-Json -Depth 8 -Compress })
     $previousJson = @($previous | ForEach-Object { $_ | ConvertTo-Json -Depth 8 -Compress })
+    $currentSet = [System.Collections.Generic.HashSet[string]]::new([string[]]$currentJson)
+    $previousSet = [System.Collections.Generic.HashSet[string]]::new([string[]]$previousJson)
     @(
-        foreach ($entry in $currentJson | Where-Object { $_ -notin $previousJson }) {
+        foreach ($entry in $currentJson | Where-Object { -not $previousSet.Contains($_) }) {
             [pscustomobject]@{ Change = 'AddedOrChanged'; CurrentRun = $runs[0].RunId; PreviousRun = $runs[1].RunId; Record = $entry }
         }
-        foreach ($entry in $previousJson | Where-Object { $_ -notin $currentJson }) {
+        foreach ($entry in $previousJson | Where-Object { -not $currentSet.Contains($_) }) {
             [pscustomobject]@{ Change = 'RemovedOrChanged'; CurrentRun = $runs[0].RunId; PreviousRun = $runs[1].RunId; Record = $entry }
         }
     )
 }
-
 function Get-HIRReportRiskScore {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$RootPath)

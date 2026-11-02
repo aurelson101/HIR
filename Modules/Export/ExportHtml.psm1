@@ -7,7 +7,7 @@ function Export-HIRReportHtml {
         [string]$ReportName,
 
         [Parameter(Mandatory)]
-        [object[]]$Data,
+        [AllowEmptyCollection()][object[]]$Data,
 
         [Parameter(Mandatory)]
         [string]$RootPath

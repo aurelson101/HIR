@@ -7,7 +7,7 @@ function Export-HIRReportExcel {
         [string]$ReportName,
 
         [Parameter(Mandatory)]
-        [object[]]$Data,
+        [AllowEmptyCollection()][object[]]$Data,
 
         [Parameter(Mandatory)]
         [string]$RootPath
@@ -33,7 +33,7 @@ function Export-HIRReportExcel {
         )
 
         $metadata | Export-Excel -Path $path -WorksheetName Metadata -AutoSize -TableName Metadata
-        $Data | Export-Excel -Path $path -WorksheetName Data -AutoSize -TableName ReportData -Append
+        @(ConvertTo-HIRSpreadsheetSafeData -Data $Data) | Export-Excel -Path $path -WorksheetName Data -AutoSize -TableName ReportData -Append
         $path
     }
 }

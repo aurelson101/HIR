@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Menu Users Review: regroupe les rapports utilisateurs AD (disabled, locked, inactive, sans email, sans manager).
+- Rapports Expired or Never Logged On AD Users et Old PasswordLastSet Users (365 jours).
+
+### Fixed
+
+- DisplayName toujours vide dans six rapports AD utilisateurs.
+- Locked Users limité aux utilisateurs ; Inactive, Without Email et Without Manager limités aux comptes activés.
+- Exports CSV/JSON/HTML/Excel et historique : les résultats vides ne provoquent plus d'erreur.
+- Neutralisation des formules (=, +, -, @) dans les exports CSV et Excel.
+- Remove-HIRExpiredFiles exige RetainDays (risque de purge totale si omis).
+- Rapports Exchange Full Access / Send As : le filtre NT AUTHORITY\SELF ne fonctionnait pas ; un échec sur une boîte n'interrompt plus le rapport.
+- DisplayName ajouté aux rapports hybrides ; comparaison d'exécutions en O(n).
+- Empty AD Groups n'inclut plus les groupes dont les membres passent par primaryGroupID (ex. Domain Users).
+- ACL de Reports : SYSTEM et Administrateurs conservent l'accès.
+- Exchange Full Access / Send As : progression affichée, identifiant objet utilisé, Send As via Get-EXORecipientPermission (REST, plus rapide que PowerShell distant).
+
+### Notes
+
+- Send As nécessite ExchangeOnlineManagement 3.x (Get-EXORecipientPermission) ; non testé sur un tenant réel.
+
 ## 0.3.0 - 2026-07-27
 
 ### Added

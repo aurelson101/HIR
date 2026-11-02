@@ -114,6 +114,7 @@ The left navigation filters the catalog by area. The Dashboard is the root view 
 - Executive Summary
 - Hybrid Reports
 - Active Directory
+- Users Review
 - Entra ID
 - Exchange Online
 - Security / IAM
@@ -253,6 +254,5 @@ Hybrid-Identity-Reporter/
 
 ## Future Improvements
 
-- Add a dedicated graphical settings editor with schema validation
-- Add configurable stable identity keys for field-level snapshot comparisons
-- Add optional scheduled console execution on a hardened administration host
+The prioritized and testable improvement backlog is maintained in
+[`TODO.md`](TODO.md).

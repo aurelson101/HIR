@@ -4,7 +4,7 @@ function Export-HIRReportJson {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$ReportName,
-        [Parameter(Mandatory)][object[]]$Data,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Data,
         [Parameter(Mandatory)][string]$RootPath
     )
 

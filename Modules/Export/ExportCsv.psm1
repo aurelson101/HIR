@@ -7,7 +7,7 @@ function Export-HIRReportCsv {
         [string]$ReportName,
 
         [Parameter(Mandatory)]
-        [object[]]$Data,
+        [AllowEmptyCollection()][object[]]$Data,
 
         [Parameter(Mandatory)]
         [string]$RootPath,
@@ -24,7 +24,7 @@ function Export-HIRReportCsv {
         Copy-HIRExistingReportsToArchive -RootPath $RootPath -SafeReportName $safeName -Extension csv
         $path = Join-Path $reportDirectory ('{0}-{1}.csv' -f $safeName, (Get-Date -Format 'yyyyMMdd-HHmmss'))
 
-        @($Data) | Export-Csv -LiteralPath $path -NoTypeInformation -Delimiter $Delimiter -Encoding UTF8
+        @(ConvertTo-HIRSpreadsheetSafeData -Data $Data) | Export-Csv -LiteralPath $path -NoTypeInformation -Delimiter $Delimiter -Encoding UTF8
         if (-not ($appSettings.PSObject.Properties.Name -contains 'Exports') -or
             -not ($appSettings.Exports.PSObject.Properties.Name -contains 'WriteMetadataSidecar') -or
             $appSettings.Exports.WriteMetadataSidecar) {

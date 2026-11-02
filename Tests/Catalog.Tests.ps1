@@ -22,3 +22,17 @@ Describe 'HIR report catalog' {
         }
     }
 }
+
+Describe 'Users Review menu' {
+    It 'groups the AD user lifecycle reports' {
+        $ids = @($reports | Where-Object Category -eq 'Users Review' | ForEach-Object Id)
+        foreach ($id in 'AD.DisabledUsers', 'AD.LockedUsers', 'AD.InactiveUsers90Days', 'AD.UsersWithoutEmail', 'AD.UsersWithoutManager', 'AD.ExpiredOrNeverLoggedOnUsers', 'AD.OldPasswordLastSet') {
+            $ids | Should -Contain $id
+        }
+    }
+
+    It 'requests DisplayName from Get-ADUser in the user reports' {
+        $source = Get-Content -LiteralPath (Join-Path $projectRoot 'Modules\AD\ADUsers.psm1') -Raw
+        ([regex]::Matches($source, "Properties\s*=\s*@\('(?!DisplayName)")).Count | Should -Be 0
+    }
+}

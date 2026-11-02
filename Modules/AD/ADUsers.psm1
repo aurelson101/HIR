@@ -13,7 +13,7 @@ function Get-HIRADDisabledUsers {
 
         $params = @{
             Filter      = 'Enabled -eq $false'
-            Properties  = @('mail', 'mailNickname', 'proxyAddresses', 'msExchHideFromAddressLists', 'userPrincipalName', 'lastLogonTimestamp', 'whenChanged')
+            Properties  = @('DisplayName', 'mail', 'mailNickname', 'proxyAddresses', 'msExchHideFromAddressLists', 'userPrincipalName', 'lastLogonTimestamp', 'whenChanged')
             ErrorAction = 'Stop'
         }
         if ($SearchBase) { $params.SearchBase = $SearchBase }
@@ -40,7 +40,7 @@ function Get-HIRADLockedUsers {
     Invoke-HIRSafeCommand -Module AD -Action 'Locked users report' -ScriptBlock {
         Assert-HIRModule -Name ActiveDirectory
         Import-Module ActiveDirectory -ErrorAction Stop
-        $params = @{ ErrorAction = 'Stop' }
+        $params = @{ UsersOnly = $true; ErrorAction = 'Stop' }
         if ($SearchBase) { $params.SearchBase = $SearchBase }
         if ($Server) { $params.Server = $Server }
         Search-ADAccount -LockedOut @params | Select-Object `
@@ -62,7 +62,7 @@ function Get-HIRADInactiveUsers {
         $params = @{ UsersOnly = $true; AccountInactive = $true; TimeSpan = (New-TimeSpan -Days $Days); ErrorAction = 'Stop' }
         if ($SearchBase) { $params.SearchBase = $SearchBase }
         if ($Server) { $params.Server = $Server }
-        Search-ADAccount @params | Select-Object `
+        Search-ADAccount @params | Where-Object { $_.Enabled } | Select-Object `
             @{Name = 'SamAccountName'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'SamAccountName' }},
             @{Name = 'Name'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'Name' }},
             @{Name = 'UserPrincipalName'; Expression = { Get-HIRObjectPropertyValue -InputObject $_ -Name 'UserPrincipalName' }},
@@ -78,7 +78,7 @@ function Get-HIRADPasswordNeverExpiresUsers {
     Invoke-HIRSafeCommand -Module AD -Action 'Password never expires report' -ScriptBlock {
         Assert-HIRModule -Name ActiveDirectory
         Import-Module ActiveDirectory -ErrorAction Stop
-        $params = @{ Filter = 'PasswordNeverExpires -eq $true -and Enabled -eq $true'; Properties = @('PasswordNeverExpires', 'mail', 'userPrincipalName'); ErrorAction = 'Stop' }
+        $params = @{ Filter = 'PasswordNeverExpires -eq $true -and Enabled -eq $true'; Properties = @('DisplayName', 'PasswordNeverExpires', 'mail', 'userPrincipalName'); ErrorAction = 'Stop' }
         if ($SearchBase) { $params.SearchBase = $SearchBase }
         if ($Server) { $params.Server = $Server }
         Get-ADUser @params | Select-Object `
@@ -98,7 +98,7 @@ function Get-HIRADAdminCountUsers {
     Invoke-HIRSafeCommand -Module AD -Action 'AdminCount users report' -ScriptBlock {
         Assert-HIRModule -Name ActiveDirectory
         Import-Module ActiveDirectory -ErrorAction Stop
-        $params = @{ LDAPFilter = '(adminCount=1)'; Properties = @('adminCount', 'mail', 'userPrincipalName'); ErrorAction = 'Stop' }
+        $params = @{ LDAPFilter = '(adminCount=1)'; Properties = @('DisplayName', 'adminCount', 'mail', 'userPrincipalName'); ErrorAction = 'Stop' }
         if ($SearchBase) { $params.SearchBase = $SearchBase }
         if ($Server) { $params.Server = $Server }
         Get-ADUser @params | Select-Object `
@@ -115,10 +115,10 @@ function Get-HIRADUsersWithoutEmail {
     [CmdletBinding()]
     param([string]$SearchBase, [string]$Server)
 
-    Invoke-HIRSafeCommand -Module AD -Action 'Users without email report' -ScriptBlock {
+    Invoke-HIRSafeCommand -Module AD -Action 'Users without email report (enabled accounts)' -ScriptBlock {
         Assert-HIRModule -Name ActiveDirectory
         Import-Module ActiveDirectory -ErrorAction Stop
-        $params = @{ LDAPFilter = '(!(mail=*))'; Properties = @('mail', 'userPrincipalName'); ErrorAction = 'Stop' }
+        $params = @{ LDAPFilter = '(&(objectCategory=person)(objectClass=user)(!(mail=*))(!(userAccountControl:1.2.840.113556.1.4.803:=2)))'; Properties = @('DisplayName', 'mail', 'userPrincipalName'); ErrorAction = 'Stop' }
         if ($SearchBase) { $params.SearchBase = $SearchBase }
         if ($Server) { $params.Server = $Server }
         Get-ADUser @params | Select-Object `
@@ -137,7 +137,7 @@ function Get-HIRADUsersWithoutManager {
     Invoke-HIRSafeCommand -Module AD -Action 'Users without manager report' -ScriptBlock {
         Assert-HIRModule -Name ActiveDirectory
         Import-Module ActiveDirectory -ErrorAction Stop
-        $params = @{ LDAPFilter = '(!(manager=*))'; Properties = @('manager', 'mail', 'userPrincipalName'); ErrorAction = 'Stop' }
+        $params = @{ LDAPFilter = '(&(objectCategory=person)(objectClass=user)(!(manager=*))(!(userAccountControl:1.2.840.113556.1.4.803:=2)))'; Properties = @('DisplayName', 'manager', 'mail', 'userPrincipalName'); ErrorAction = 'Stop' }
         if ($SearchBase) { $params.SearchBase = $SearchBase }
         if ($Server) { $params.Server = $Server }
         Get-ADUser @params | Select-Object `
@@ -150,6 +150,67 @@ function Get-HIRADUsersWithoutManager {
     }
 }
 
+function Get-HIRADExpiredOrNeverLoggedOnUsers {
+    [CmdletBinding()]
+    param([string]$SearchBase, [string]$Server)
+
+    Invoke-HIRSafeCommand -Module AD -Action 'Expired or never logged on users report' -ScriptBlock {
+        Assert-HIRModule -Name ActiveDirectory
+        Import-Module ActiveDirectory -ErrorAction Stop
+        $params = @{
+            LDAPFilter  = '(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))'
+            Properties  = @('DisplayName', 'mail', 'userPrincipalName', 'accountExpires', 'lastLogonTimestamp', 'whenCreated')
+            ErrorAction = 'Stop'
+        }
+        if ($SearchBase) { $params.SearchBase = $SearchBase }
+        if ($Server) { $params.Server = $Server }
+        $now = Get-Date
+        foreach ($user in @(Get-ADUser @params)) {
+            $expiresRaw = [int64](Get-HIRObjectPropertyValue -InputObject $user -Name 'accountExpires' -Default 0)
+            # 0 and Int64.MaxValue both mean "never expires"
+            $expires = if ($expiresRaw -gt 0 -and $expiresRaw -lt [int64]::MaxValue) { [datetime]::FromFileTime($expiresRaw) } else { $null }
+            $lastLogonRaw = Get-HIRObjectPropertyValue -InputObject $user -Name 'lastLogonTimestamp'
+            $lastLogon = if ($lastLogonRaw) { [datetime]::FromFileTime([int64]$lastLogonRaw) } else { $null }
+            $isExpired = ($null -ne $expires -and $expires -lt $now)
+            $neverLoggedOn = ($null -eq $lastLogon)
+            if (-not ($isExpired -or $neverLoggedOn)) { continue }
+            [pscustomobject][ordered]@{
+                SamAccountName    = Get-HIRObjectPropertyValue -InputObject $user -Name 'SamAccountName'
+                DisplayName       = Get-HIRObjectPropertyValue -InputObject $user -Name 'DisplayName'
+                UserPrincipalName = Get-HIRObjectPropertyValue -InputObject $user -Name 'UserPrincipalName'
+                Mail              = Get-HIRObjectPropertyValue -InputObject $user -Name 'Mail'
+                Enabled           = Get-HIRObjectPropertyValue -InputObject $user -Name 'Enabled'
+                Finding           = @(if ($isExpired) { 'Expired' }; if ($neverLoggedOn) { 'NeverLoggedOn' }) -join ';'
+                AccountExpires    = $expires
+                LastLogon         = $lastLogon
+                WhenCreated       = Get-HIRObjectPropertyValue -InputObject $user -Name 'WhenCreated'
+            }
+        }
+    }
+}
+
+function Get-HIRADOldPasswordLastSetUsers {
+    [CmdletBinding()]
+    param([int]$MaxAgeDays = 365, [string]$SearchBase, [string]$Server)
+
+    Invoke-HIRSafeCommand -Module AD -Action 'Old PasswordLastSet users report' -ScriptBlock {
+        Assert-HIRModule -Name ActiveDirectory
+        Import-Module ActiveDirectory -ErrorAction Stop
+        $params = @{
+            LDAPFilter  = '(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))'
+            Properties  = @('DisplayName', 'mail', 'userPrincipalName', 'PasswordLastSet', 'PasswordNeverExpires')
+            ErrorAction = 'Stop'
+        }
+        if ($SearchBase) { $params.SearchBase = $SearchBase }
+        if ($Server) { $params.Server = $Server }
+        $threshold = (Get-Date).AddDays(-1 * [Math]::Abs($MaxAgeDays))
+        Get-ADUser @params |
+            Where-Object { $null -ne $_.PasswordLastSet -and $_.PasswordLastSet -lt $threshold } |
+            Select-Object `
+                SamAccountName, DisplayName, UserPrincipalName, Mail, Enabled, PasswordNeverExpires, PasswordLastSet,
+                @{Name = 'PasswordAgeDays'; Expression = { [int]((Get-Date) - $_.PasswordLastSet).TotalDays }}
+    }
+}
 function Get-HIRADAdminPasswordNeverExpiresUsers {
     [CmdletBinding()]
     param([string]$SearchBase, [string]$Server)
@@ -159,7 +220,7 @@ function Get-HIRADAdminPasswordNeverExpiresUsers {
         Import-Module ActiveDirectory -ErrorAction Stop
         $params = @{
             LDAPFilter = '(&(adminCount=1)(userAccountControl:1.2.840.113556.1.4.803:=65536)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))'
-            Properties = @('adminCount', 'PasswordNeverExpires', 'mail', 'userPrincipalName', 'memberOf')
+            Properties = @('DisplayName', 'adminCount', 'PasswordNeverExpires', 'mail', 'userPrincipalName', 'memberOf')
             ErrorAction = 'Stop'
         }
         if ($SearchBase) { $params.SearchBase = $SearchBase }
@@ -170,4 +231,4 @@ function Get-HIRADAdminPasswordNeverExpiresUsers {
     }
 }
 
-Export-ModuleMember -Function Get-HIRADDisabledUsers, Get-HIRADLockedUsers, Get-HIRADInactiveUsers, Get-HIRADPasswordNeverExpiresUsers, Get-HIRADAdminCountUsers, Get-HIRADUsersWithoutEmail, Get-HIRADUsersWithoutManager, Get-HIRADAdminPasswordNeverExpiresUsers
+Export-ModuleMember -Function Get-HIRADDisabledUsers, Get-HIRADLockedUsers, Get-HIRADInactiveUsers, Get-HIRADPasswordNeverExpiresUsers, Get-HIRADAdminCountUsers, Get-HIRADUsersWithoutEmail, Get-HIRADUsersWithoutManager, Get-HIRADAdminPasswordNeverExpiresUsers, Get-HIRADExpiredOrNeverLoggedOnUsers, Get-HIRADOldPasswordLastSetUsers
