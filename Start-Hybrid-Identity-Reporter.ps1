@@ -744,8 +744,11 @@ function Set-ReportList {
         if ($group -and $group -ne $currentGroup) {
             $header = New-Object System.Windows.Controls.ListBoxItem
             $header.Content = $group
-            $header.IsEnabled = $false
+            $header.IsHitTestVisible = $false
+            $header.Focusable = $false
             $header.FontWeight = [System.Windows.FontWeights]::Bold
+            $header.Foreground = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(31, 56, 85))
+            $header.Background = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(232, 238, 245))
             $header.Padding = [System.Windows.Thickness]::new(6, 6, 6, 3)
             $controls.ReportsList.Items.Add($header) | Out-Null
             $currentGroup = $group
