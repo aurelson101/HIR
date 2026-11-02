@@ -4,7 +4,7 @@
 
 ### Added
 
-- Menu Users Review: regroupe les rapports utilisateurs AD (disabled, locked, inactive, sans email, sans manager).
+- Menu Active Directory : sous-groupes Users Review, Privileged Users Review et Groups & Computers Review (champ ReviewGroup du catalogue).
 - Rapports Expired or Never Logged On AD Users et Old PasswordLastSet Users (365 jours).
 
 ### Fixed

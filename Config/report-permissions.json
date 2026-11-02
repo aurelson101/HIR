@@ -6,12 +6,6 @@
       "Prerequisites": "RSAT ActiveDirectory and network access to a domain controller.",
       "TypicalDuration": "Seconds to a few minutes depending on directory size."
     },
-    "Users Review": {
-      "Source": "Active Directory",
-      "Permissions": "Authenticated domain read access; no write delegation.",
-      "Prerequisites": "RSAT ActiveDirectory and network access to a domain controller.",
-      "TypicalDuration": "Seconds to a few minutes depending on directory size."
-    },
     "Entra ID": {
       "Source": "Microsoft Graph",
       "Permissions": "User.Read.All and/or Group.Read.All as required by the report.",

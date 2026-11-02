@@ -425,7 +425,6 @@ function Get-SectionManagementRows {
         'Dashboard' {
             @(
                 [pscustomobject]@{ Menu = 'Active Directory'; Purpose = 'Pilot on-premises identity inventory and hygiene reports.'; NextStep = 'Click the green pie slice or select Active Directory.' }
-                [pscustomobject]@{ Menu = 'Users Review'; Purpose = 'Review AD user lifecycle: disabled, locked, inactive and incomplete accounts.'; NextStep = 'Connect AD, then run the user review reports.' }
                 [pscustomobject]@{ Menu = 'Executive Summary'; Purpose = 'Review high-level roadmap, risk and audit score items.'; NextStep = 'Filter Critical/High risks and track planned reports.' }
                 [pscustomobject]@{ Menu = 'Entra ID'; Purpose = 'Run Microsoft Graph identity, guest, sync and license reports.'; NextStep = 'Connect Entra ID, then choose a report.' }
                 [pscustomobject]@{ Menu = 'Exchange Online'; Purpose = 'Audit mailbox inventory, forwarding and GAL visibility.'; NextStep = 'Connect Exchange Online, then run mailbox reports.' }
@@ -443,15 +442,6 @@ function Get-SectionManagementRows {
                 [pscustomobject]@{ Action = 'Audit locked/inactive accounts'; Scope = 'Users'; Notes = 'Use Locked AD Users and Inactive AD Users reports.' }
                 [pscustomobject]@{ Action = 'Review privileged groups'; Scope = 'Security'; Notes = 'Run Domain Admins Members and AdminCount reports.' }
                 [pscustomobject]@{ Action = 'Export evidence'; Scope = 'Reports'; Notes = 'Export current report to CSV, Excel or HTML.' }
-            )
-        }
-        'Users Review' {
-            @(
-                [pscustomobject]@{ Action = 'Connect AD'; Scope = 'Connection'; Notes = 'Validate ActiveDirectory module and domain controller access.' }
-                [pscustomobject]@{ Action = 'Audit disabled users'; Scope = 'Lifecycle'; Notes = 'Run Disabled AD Users report.' }
-                [pscustomobject]@{ Action = 'Audit locked/inactive accounts'; Scope = 'Lifecycle'; Notes = 'Use Locked AD Users and Inactive AD Users reports.' }
-                [pscustomobject]@{ Action = 'Check data quality'; Scope = 'Governance'; Notes = 'Run Users Without Email and Users Without Manager reports.' }
-                [pscustomobject]@{ Action = 'Export evidence'; Scope = 'Reports'; Notes = 'Export current report to CSV, Excel, HTML or JSON.' }
             )
         }
         'Executive Summary' {
@@ -748,7 +738,18 @@ function Set-ReportList {
     $controls.ReportsList.Items.Clear()
     $flatReports = @(Get-FlatReportItems -InputObject $Reports)
 
+    $currentGroup = $null
     foreach ($report in $flatReports) {
+        $group = if ($script:LastNavigationSection -eq 'Active Directory' -and $report.PSObject.Properties.Name -contains 'ReviewGroup') { [string]$report.ReviewGroup } else { $null }
+        if ($group -and $group -ne $currentGroup) {
+            $header = New-Object System.Windows.Controls.ListBoxItem
+            $header.Content = $group
+            $header.IsEnabled = $false
+            $header.FontWeight = [System.Windows.FontWeights]::Bold
+            $header.Padding = [System.Windows.Thickness]::new(6, 6, 6, 3)
+            $controls.ReportsList.Items.Add($header) | Out-Null
+            $currentGroup = $group
+        }
         $controls.ReportsList.Items.Add((New-ReportListItem -Report $report)) | Out-Null
     }
 
@@ -884,7 +885,6 @@ function Get-DashboardMenuSlices {
     $menuColors = @{
         'Hybrid Reports' = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(52, 152, 219))
         'Active Directory' = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(39, 174, 96))
-        'Users Review' = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(230, 126, 34))
         'Entra ID' = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(155, 89, 182))
         'Exchange Online' = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(22, 160, 133))
         'Security / IAM' = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(231, 76, 60))
@@ -895,7 +895,6 @@ function Get-DashboardMenuSlices {
 
     $sections = @(
         'Active Directory',
-        'Users Review',
         'Executive Summary',
         'Entra ID',
         'Exchange Online',
@@ -1020,7 +1019,6 @@ function Update-SectionOverview {
 
     $connectionHint = switch ($Section) {
         'Active Directory' { $controls.ADStatusText.Text }
-        'Users Review' { $controls.ADStatusText.Text }
         'Entra ID' { $controls.EntraStatusText.Text }
         'Exchange Online' { $controls.ExchangeStatusText.Text }
         'Hybrid Reports' { '{0} | {1}' -f $controls.ADStatusText.Text, $controls.ExchangeStatusText.Text }
@@ -1037,9 +1035,6 @@ function Get-SectionManagementOptions {
     switch ($Section) {
         'Active Directory' {
             "Options:`n- Connect AD`n- Audit disabled/locked/inactive users`n- Review groups and privileged accounts`n- Export AD reports"
-        }
-        'Users Review' {
-            "Options:`n- Connect AD`n- Review disabled, locked and inactive users`n- Check missing email/manager data`n- Export user review reports"
         }
         'Hybrid Reports' {
             "Options:`n- Connect AD + Exchange Online`n- Check GAL visibility mismatches`n- Review missing mailNickname/proxyAddresses`n- Export hybrid inconsistencies"
@@ -1526,8 +1521,7 @@ function Get-SectionDescription {
     switch ($Section) {
         'Dashboard' { 'Root menu map. Click a pie slice to open the corresponding reporting area.' }
         'Hybrid Reports' { 'Cross-platform checks comparing on-premises Active Directory attributes with cloud and Exchange Online state.' }
-        'Active Directory' { 'Read-only Active Directory group and computer reports.' }
-        'Users Review' { 'Read-only Active Directory user lifecycle and data quality review: disabled, locked, inactive, and incomplete accounts.' }
+        'Active Directory' { 'Read-only Active Directory reports grouped as Users Review, Privileged Users Review and Groups & Computers Review.' }
         'Entra ID' { 'Microsoft Graph based reports for synced, cloud-only, guest, disabled and licensed users.' }
         'Exchange Online' { 'Exchange Online mailbox and recipient reports, including forwarding and GAL visibility checks.' }
         'Security / IAM' { 'Privileged access, administrative role and identity hygiene reports.' }
@@ -1554,6 +1548,12 @@ function Get-ReportsForSection {
     }
     elseif ($Section -eq 'Exports') {
         $script:ReportCatalog | Where-Object { $_.Implemented -eq $true -or $_.Category -eq 'Exports' } | Sort-Object Category, DisplayName
+    }
+    elseif ($Section -eq 'Active Directory') {
+        $groupOrder = @('Users Review', 'Privileged Users Review', 'Groups & Computers Review')
+        $script:ReportCatalog |
+            Where-Object { $_.Category -eq $Section -or ($_.PSObject.Properties.Name -contains 'ReviewGroup' -and $_.Id -like 'AD.*') } |
+            Sort-Object @{ Expression = { $i = if ($_.PSObject.Properties.Name -contains 'ReviewGroup') { [array]::IndexOf($groupOrder, $_.ReviewGroup) } else { -1 }; if ($i -lt 0) { 99 } else { $i } } }, DisplayName
     }
     else {
         $script:ReportCatalog | Where-Object { $_.Category -eq $Section } | Sort-Object DisplayName

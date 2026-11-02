@@ -146,7 +146,6 @@
                         <ListBoxItem Content="Executive Summary" Style="{StaticResource NavigationItemStyle}" />
                         <ListBoxItem Content="Hybrid Reports" Style="{StaticResource NavigationItemStyle}" />
                         <ListBoxItem Content="Active Directory" Style="{StaticResource NavigationItemStyle}" />
-                        <ListBoxItem Content="Users Review" Style="{StaticResource NavigationItemStyle}" />
                         <ListBoxItem Content="Entra ID" Style="{StaticResource NavigationItemStyle}" />
                         <ListBoxItem Content="Exchange Online" Style="{StaticResource NavigationItemStyle}" />
                         <ListBoxItem Content="Security / IAM" Style="{StaticResource NavigationItemStyle}" />

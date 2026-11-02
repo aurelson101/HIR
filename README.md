@@ -114,7 +114,6 @@ The left navigation filters the catalog by area. The Dashboard is the root view 
 - Executive Summary
 - Hybrid Reports
 - Active Directory
-- Users Review
 - Entra ID
 - Exchange Online
 - Security / IAM

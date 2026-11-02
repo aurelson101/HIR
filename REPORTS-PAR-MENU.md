@@ -39,13 +39,9 @@ Ce document est genere a partir de Config/reports.json et liste les rapports dis
 
 ## Active Directory
 
-| Rapport | Statut | Risque | Priorite | Note |
-| --- | --- | --- | --- | --- |
-| AD Groups Without managedBy | Prevu | Medium | Medium | Planned governance report for AD groups without managedBy. |
-| Empty AD Groups | Disponible | Low | Low | Find groups without members for cleanup review. |
-| Inactive Computers over 90 days | Disponible | Medium | Medium | Find stale computer objects for inventory cleanup. |
+Les rapports sont regroupes en sous-groupes de revue dans le menu (Users Review, Privileged Users Review, Groups & Computers Review). Les rapports privilegies restent aussi disponibles dans Security / IAM.
 
-## Users Review
+### Users Review
 
 | Rapport | Statut | Risque | Priorite | Note |
 | --- | --- | --- | --- | --- |
@@ -56,6 +52,24 @@ Ce document est genere a partir de Config/reports.json et liste les rapports dis
 | Old PasswordLastSet Users | Disponible | Medium | High | Enabled accounts whose password has not been changed for over 365 days. |
 | Users Without Email | Disponible | Low | Low | Improve AD data quality for mail-enabled identity workflows. |
 | Users Without Manager | Disponible | Low | Low | Improve directory governance and ownership data. |
+
+### Privileged Users Review
+
+| Rapport | Statut | Risque | Priorite | Note |
+| --- | --- | --- | --- | --- |
+| Admin Accounts Password Never Expires | Disponible | Critical | High | Find enabled adminCount accounts with non-expiring passwords. |
+| AdminCount = 1 Users | Disponible | High | High | Find accounts protected by AdminSDHolder history or privileged membership. |
+| Domain Admins Members | Disponible | Critical | High | Review recursive Domain Admins membership. |
+| Extended Privileged AD Groups Members | Prevu | Critical | High | Planned review for Enterprise Admins, Schema Admins, Operators and other privileged groups. |
+| Password Never Expires | Disponible | High | High | Identify enabled accounts with passwords that never expire. |
+
+### Groups & Computers Review
+
+| Rapport | Statut | Risque | Priorite | Note |
+| --- | --- | --- | --- | --- |
+| AD Groups Without managedBy | Prevu | Medium | Medium | Planned governance report for AD groups without managedBy. |
+| Empty AD Groups | Disponible | Low | Low | Find groups without members for cleanup review. |
+| Inactive Computers over 90 days | Disponible | Medium | Medium | Find stale computer objects for inventory cleanup. |
 
 ## Entra ID
 

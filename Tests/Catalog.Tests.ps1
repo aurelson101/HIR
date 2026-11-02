@@ -23,9 +23,9 @@ Describe 'HIR report catalog' {
     }
 }
 
-Describe 'Users Review menu' {
-    It 'groups the AD user lifecycle reports' {
-        $ids = @($reports | Where-Object Category -eq 'Users Review' | ForEach-Object Id)
+Describe 'Active Directory review groups' {
+    It 'groups the AD user lifecycle reports under Users Review' {
+        $ids = @($reports | Where-Object ReviewGroup -eq 'Users Review' | ForEach-Object Id)
         foreach ($id in 'AD.DisabledUsers', 'AD.LockedUsers', 'AD.InactiveUsers90Days', 'AD.UsersWithoutEmail', 'AD.UsersWithoutManager', 'AD.ExpiredOrNeverLoggedOnUsers', 'AD.OldPasswordLastSet') {
             $ids | Should -Contain $id
         }
